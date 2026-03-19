@@ -1,25 +1,21 @@
-Done. All acceptance criteria pass, branch pushed.
-
----
+Done. Here's the summary:
 
 ## Files changed
-| File | Description |
-|------|-------------|
-| `cli.py` | Argparse CLI with `send`, `notify`, `projects`, `status` subcommands |
-| `whatsup/mcp_server.py` | FastMCP server with 4 tools (send_checkin, send_notification, whatsup_projects, whatsup_status) |
-| `skills/whatsup.md` | Claude skill definition — `/whatsup` trigger with MCP tool mappings |
-| `whatsup/__init__.py` | Package init (stub, replaced by agent A at merge) |
-| `whatsup/core.py` | Core logic stub (replaced by agent B at merge) |
-| `whatsup/messages.py` | Message formatters stub (replaced by agent B at merge) |
-| `docs/project-memory/sessions/S-2026-03-19-0316-sprint1-cli-mcp-skill.md` | Session doc |
+- `.gitignore` — added Python bytecode, packaging, venv, testing, and IDE ignores
+- `docs/project-memory/sessions/S-2026-03-19-0406-gitignore-cleanup.md` — session doc
+- 10 `.pyc` files removed from git tracking (in `whatsup/__pycache__/` and `whatsup/transport/__pycache__/`)
 
 ## Commands run
-- `python cli.py --help` — shows all 4 subcommands
-- `python cli.py send --help` — shows slug and message as required args
-- `from whatsup.mcp_server import mcp` — imports successfully
-- `from whatsup import core; print('import ok')` — sprint smoke test passes
+- `git rm -r --cached whatsup/__pycache__/ whatsup/transport/__pycache__/`
+- `git ls-files | grep __pycache__` → empty (verified)
+- `python3 -c "from whatsup import core; print('ok')"` → `ok` (verified)
+- `git push -u origin HEAD`
+
+## Acceptance criteria
+- `.gitignore` exists at repo root with all required patterns
+- `git ls-files | grep __pycache__` returns nothing
+- `python3 -c "from whatsup import core; print('ok')"` passes
 
 ## Notes / follow-on work
-- **Merge conflicts expected** on `whatsup/__init__.py`, `whatsup/core.py`, `whatsup/messages.py` — agent A/B versions should take precedence over my stubs
-- Used `FastMCP` (decorator-based) rather than lower-level `Server` class for cleaner code
-- `mcp` package required Python 3.10+ — tested with Python 3.13
+- The `.pyc` files still exist on disk (as expected) — they're just no longer tracked by git
+- The `.gitignore` preserves the existing sprint, terraform, and node ignores that were already present

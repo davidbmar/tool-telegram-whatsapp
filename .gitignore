@@ -1,3 +1,30 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Packaging
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+env/
+.env
+
+# Testing / type-checking
+.pytest_cache/
+.mypy_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # Sprint ephemeral files
 .agent-done-*
 .sprint-test-output.txt
