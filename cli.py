@@ -48,6 +48,9 @@ def main():
     p_server = sub.add_parser("server", help="Start the REST API server")
     p_server.add_argument("--port", type=int, default=None, help="Port (default: 1202)")
 
+    # setup
+    sub.add_parser("setup", help="First-time setup: init config, start server, open config UI")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -142,6 +145,64 @@ def main():
             if args.port is not None:
                 argv.extend(["--port", str(args.port)])
             server_main(argv)
+
+        elif args.command == "setup":
+            import subprocess, os, time, webbrowser
+            # Step 1: Init config if needed
+            if not CONFIG_PATH.exists():
+                print("Step 1/3: Creating config...")
+                sample = {
+                    "transports": {"console": {}, "telegram": {"botToken": ""}},
+                    "projects": [{"slug": "demo", "transport": "console",
+                        "groupId": "demo-group",
+                        "notify": ["sprint-merged", "test-failure", "checkin",
+                                   "sprint-started", "agent-completed"]}],
+                }
+                CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                CONFIG_PATH.write_text(json.dumps(sample, indent=2) + "\n", encoding="utf-8")
+                print(f"  Config created at {CONFIG_PATH}")
+            else:
+                print("Step 1/3: Config exists.")
+
+            # Step 2: Start server in background
+            print("Step 2/3: Starting server...")
+            port = 1202
+            # Kill stale server
+            try:
+                pids = subprocess.check_output(["lsof", "-ti", f":{port}"], text=True).strip()
+                for pid in pids.splitlines():
+                    pid = int(pid)
+                    if pid != os.getpid():
+                        os.kill(pid, 15)
+            except (subprocess.CalledProcessError, OSError):
+                pass
+            time.sleep(0.5)
+            # Launch in background
+            log_path = Path.home() / ".config" / "tool-telegram-whatsapp" / "server.log"
+            pid_path = Path.home() / ".config" / "tool-telegram-whatsapp" / "server.pid"
+            server_script = Path(__file__).resolve().parent / "whatsup" / "server.py"
+            proc = subprocess.Popen(
+                [sys.executable, "-m", "whatsup.server", "--port", str(port)],
+                stdout=open(log_path, "w"), stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            pid_path.write_text(str(proc.pid))
+            time.sleep(1)
+            print(f"  Server running on http://localhost:{port} (PID {proc.pid})")
+            print(f"  Log: {log_path}")
+
+            # Step 3: Open config UI
+            print("Step 3/3: Opening config UI...")
+            url = f"http://localhost:{port}/config"
+            webbrowser.open(url)
+            print(f"\n  Config UI: {url}")
+            print(f"\n  To connect Telegram:")
+            print(f"  1. Message @BotFather on Telegram -> /newbot -> get token")
+            print(f"  2. Paste the token in the Telegram Bot Token field")
+            print(f"  3. Create a Telegram group, add the bot")
+            print(f"  4. Get group ID: curl https://api.telegram.org/bot<TOKEN>/getUpdates")
+            print(f"  5. Set transport to 'telegram', paste group ID, click Save")
+            print(f"  6. Click 'Send Test Message' to verify")
 
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
