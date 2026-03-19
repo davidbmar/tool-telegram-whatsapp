@@ -1,0 +1,97 @@
+"""CLI entry point for whatsup — send messages to project group chats."""
+
+import argparse
+import json
+import sys
+
+from whatsup import core
+from whatsup import messages
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="whatsup",
+        description="Send messages and notifications to project group chats",
+    )
+    sub = parser.add_subparsers(dest="command")
+
+    # send
+    p_send = sub.add_parser("send", help="Send a checkin message")
+    p_send.add_argument("slug", help="Project slug")
+    p_send.add_argument("message", help="Checkin message text")
+
+    # notify
+    p_notify = sub.add_parser("notify", help="Send a lifecycle notification")
+    p_notify.add_argument("slug", help="Project slug")
+    p_notify.add_argument("event", help="Event type (sprint-merged, test-failure, …)")
+    p_notify.add_argument("--sprint", type=int, default=None, help="Sprint number")
+    p_notify.add_argument("--status", default=None, help="Test status (passed/failed)")
+    p_notify.add_argument("--summary", default=None, help="Summary text")
+    p_notify.add_argument("--agent", default=None, help="Agent name")
+    p_notify.add_argument("--exit-code", type=int, default=None, help="Exit code")
+
+    # projects
+    sub.add_parser("projects", help="List configured projects")
+
+    # status
+    sub.add_parser("status", help="Check transport health")
+
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    try:
+        if args.command == "send":
+            text = messages.format_checkin(args.slug, args.message)
+            result = core.send(args.slug, text)
+            print(json.dumps(result, indent=2))
+
+        elif args.command == "notify":
+            kwargs = {}
+            if args.sprint is not None:
+                kwargs["sprint"] = args.sprint
+            if args.status is not None:
+                kwargs["status"] = args.status
+            if args.summary is not None:
+                kwargs["summary"] = args.summary
+            if args.agent is not None:
+                kwargs["agent"] = args.agent
+            if args.exit_code is not None:
+                kwargs["exit_code"] = args.exit_code
+            result = core.notify(args.slug, args.event, **kwargs)
+            print(json.dumps(result, indent=2))
+
+        elif args.command == "projects":
+            projs = core.projects()
+            if not projs:
+                print("No projects configured.")
+                return
+            print(f"{'Slug':<20} {'Transport':<12} {'Group ID':<20}")
+            print("-" * 52)
+            for p in projs:
+                print(f"{p.get('slug', ''):<20} {p.get('transport', ''):<12} {p.get('groupId', ''):<20}")
+
+        elif args.command == "status":
+            health = core.status()
+            for transport_name, info in health.items():
+                ok = info.get("ok", False)
+                tag = "OK" if ok else "FAIL"
+                print(f"{transport_name}: {tag}")
+                if not ok and "error" in info:
+                    print(f"  error: {info['error']}")
+
+    except FileNotFoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        print(f"Unexpected error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
