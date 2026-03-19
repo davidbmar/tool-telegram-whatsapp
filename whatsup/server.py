@@ -334,7 +334,8 @@ def main(argv: list[str] | None = None) -> None:
     port = args.port
     _kill_stale_server(port)
 
-    server = _ThreadedHTTPServer(("", port), WhatsupHandler)
+    bind_addr = os.environ.get("WHATSUP_BIND", "127.0.0.1")
+    server = _ThreadedHTTPServer((bind_addr, port), WhatsupHandler)
 
     # Graceful shutdown on SIGINT / SIGTERM
     def _shutdown(signum, _frame):
@@ -344,7 +345,7 @@ def main(argv: list[str] | None = None) -> None:
     signal.signal(signal.SIGINT, _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)
 
-    log.info("whatsup REST server starting on port %d", port)
+    log.info("whatsup REST server starting on %s:%d", bind_addr, port)
     try:
         server.serve_forever()
     finally:
