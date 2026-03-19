@@ -1,11 +1,11 @@
-# Sprint 1 — Agent Notes
+# Sprint 2 — Agent Notes
 
-*Started: 2026-03-19 03:13 UTC*
+*Started: 2026-03-19 04:06 UTC*
 
 Phase 1 Agents: 3
-- agentA-transport-config
-- agentB-core-messages
-- agentC-cli-mcp-skill
+- agentA-gitignore-cleanup
+- agentB-events-history
+- agentC-rest-server
 
 Phase 2 Agents: 0
 (none)
@@ -14,81 +14,61 @@ Automated summaries from each agent are appended below as they complete.
 
 ---
 
-## agentB-core-messages
+## agentA-gitignore-cleanup
 
-*Completed: 2026-03-19 03:15 UTC*
+*Completed: 2026-03-19 04:07 UTC*
 
 ## Files changed
-- `whatsup/messages.py` — **primary deliverable**: format_checkin, format_sprint_merged, format_test_failure, format_event dispatcher
-- `whatsup/core.py` — **primary deliverable**: send, notify, projects, status, _get_transport helper
-- `whatsup/__init__.py` — stub (agentA will overwrite)
-- `whatsup/config.py` — stub (agentA will overwrite)
-- `whatsup/transport/__init__.py` — stub (agentA will overwrite)
-- `whatsup/transport/telegram.py` — stub (agentA will overwrite)
-- `docs/project-memory/sessions/S-2026-03-19-0314-sprint1-core-messages.md` — session doc
+- `.gitignore` — added Python bytecode, packaging, venv, testing, and IDE ignores
+- `docs/project-memory/sessions/S-2026-03-19-0406-gitignore-cleanup.md` — session doc
+- 10 `.pyc` files removed from git tracking (in `whatsup/__pycache__/` and `whatsup/transport/__pycache__/`)
 
 ## Commands run
-- `python3 -c "..."` — all 5 acceptance criteria passed
-- `git push -u origin HEAD` — branch pushed
+- `git rm -r --cached whatsup/__pycache__/ whatsup/transport/__pycache__/`
+- `git ls-files | grep __pycache__` → empty (verified)
+- `python3 -c "from whatsup import core; print('ok')"` → `ok` (verified)
+- `git push -u origin HEAD`
+
+## Acceptance criteria
+- `.gitignore` exists at repo root with all required patterns
+- `git ls-files | grep __pycache__` returns nothing
+- `python3 -c "from whatsup import core; print('ok')"` passes
 
 ## Notes / follow-on work
-- Stub files for agentA's dependencies (config, transport) are included so the branch tests in isolation. Per merge order (agentA → agentB → agentC), agentA's real implementations will already be on main when this branch merges.
-- The `_FORMATTERS` dict in `messages.py` makes adding new event types trivial — just add a formatter function and register it.
+- The `.pyc` files still exist on disk (as expected) — they're just no longer tracked by git
+- The `.gitignore` preserves the existing sprint, terraform, and node ignores that were already present
 
 
 ---
 
-## agentA-transport-config
+## agentB-events-history
 
-*Completed: 2026-03-19 03:15 UTC*
+*Completed: 2026-03-19 04:08 UTC*
 
-## Files changed (7)
-- `pyproject.toml` — package metadata, deps (`requests`, `mcp`), CLI entry point
-- `whatsup/__init__.py` — `__version__ = "0.1.0"`
-- `whatsup/config.py` — `load_config()`, `get_project()`, `get_all_projects()`
-- `whatsup/core.py` — convenience re-exports (needed by brief's smoke test)
-- `whatsup/transport/__init__.py` — `Transport` protocol (3 methods)
-- `whatsup/transport/telegram.py` — `TelegramTransport` implementation
-- `docs/project-memory/sessions/S-2026-03-19-0313-transport-config.md` — session doc
+## Files changed
+- **`whatsup/messages.py`** — added `format_sprint_started`, `format_agent_completed`, registered both in `_FORMATTERS`
+- **`whatsup/core.py`** — rewritten with `send()`, `notify()`, `projects()`, `status()`, `_get_transport()` helper; backward-compat re-exports preserved
+- **`whatsup/history.py`** — new file with `log_message()` (JSONL append to `~/.config/tool-telegram-whatsapp/history/{slug}.jsonl`) and `get_history()` (tail N entries)
+- **`docs/project-memory/sessions/S-2026-03-19-0408-sprint2-events-history.md`** — session doc
 
 ## Commands run
-- `python3 -c "from whatsup import core; print('import ok')"` — passed
-- All acceptance criteria imports — passed
-- `TelegramTransport` has all 3 protocol methods — verified
-- `load_config()` raises `FileNotFoundError` with helpful message — verified
-- `git push -u origin HEAD` — pushed to `agentA-transport-config`
+- `git pull origin main` — already up to date
+- `python3 -c "..."` — verified all 5 acceptance criteria pass
+- `git commit` + `git push -u origin HEAD`
 
 ## Notes / follow-on work
-- `whatsup/core.py` was added beyond the brief's explicit file list because the brief's own smoke test (`from whatsup import core`) requires it
-- `create_group` creates an invite link (not a new group) since the Telegram Bot API doesn't support group creation — this matches the brief's instruction
-- No `cli.py` was created — that's scoped to another agent per the sprint brief
+- **No test suite exists** — a future sprint should add unit tests for messages, core, and history modules
+- **REST API server** (port 1202) and **`.gitignore` cleanup** are scoped to other agents in this sprint
+- `notify()` checks the project's `notify` list and returns `{"skipped": True, ...}` for events not enabled — MCP tools now work end-to-end
 
 
 ---
 
-## agentC-cli-mcp-skill
+## agentC-rest-server
 
-*Completed: 2026-03-19 03:16 UTC*
+*Completed: 2026-03-19 04:10 UTC*
 
-## Files changed
-| File | Description |
-|------|-------------|
-| `cli.py` | Argparse CLI with `send`, `notify`, `projects`, `status` subcommands |
-| `whatsup/mcp_server.py` | FastMCP server with 4 tools (send_checkin, send_notification, whatsup_projects, whatsup_status) |
-| `skills/whatsup.md` | Claude skill definition — `/whatsup` trigger with MCP tool mappings |
-| `whatsup/__init__.py` | Package init (stub, replaced by agent A at merge) |
-| `whatsup/core.py` | Core logic stub (replaced by agent B at merge) |
-| `whatsup/messages.py` | Message formatters stub (replaced by agent B at merge) |
-| `docs/project-memory/sessions/S-2026-03-19-0316-sprint1-cli-mcp-skill.md` | Session doc |
-
-## Commands run
-- `python cli.py --help` — shows all 4 subcommands
-- `python cli.py send --help` — shows slug and message as required args
-- `from whatsup.mcp_server import mcp` — imports successfully
-- `from whatsup import core; print('import ok')` — sprint smoke test passes
-
-## Notes / follow-on work
-- **Merge conflicts expected** on `whatsup/__init__.py`, `whatsup/core.py`, `whatsup/messages.py` — agent A/B versions should take precedence over my stubs
-- Used `FastMCP` (decorator-based) rather than lower-level `Server` class for cleaner code
-- `mcp` package required Python 3.10+ — tested with Python 3.13
+```
+The background server test completed successfully — output was already reviewed earlier and all endpoints returned correct JSON responses. Work is complete and pushed.
+```
 
