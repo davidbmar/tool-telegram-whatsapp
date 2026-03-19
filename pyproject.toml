@@ -11,5 +11,8 @@ dependencies = [
     "mcp",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [project.scripts]
 whatsup = "cli:main"
