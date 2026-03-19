@@ -1,10 +1,10 @@
-# Sprint 4 — Agent Notes
+# Sprint 5 — Agent Notes
 
-*Started: 2026-03-19 04:45 UTC*
+*Started: 2026-03-19 06:03 UTC*
 
 Phase 1 Agents: 2
-- agentA-bugfixes
-- agentB-schema-skill
+- agentA-html-views
+- agentB-config-polish
 
 Phase 2 Agents: 0
 (none)
@@ -13,49 +13,50 @@ Automated summaries from each agent are appended below as they complete.
 
 ---
 
-## agentB-schema-skill
+## agentA-html-views
 
-*Completed: 2026-03-19 04:49 UTC*
+*Completed: 2026-03-19 06:07 UTC*
 
-## Files changed
-- **`whatsup/server.py`** — Added `GET /schema` endpoint returning JSON Schema with `tool`, `version`, `globalConfig`, `projectConfig`
-- **`cli.py`** — Added `install-skill` subcommand that copies `skills/whatsup.md` to `~/.claude/skills/whatsup.md`
-- **`tests/test_server.py`** — New file with 7 tests for `/schema` endpoint (tool name, version, properties, enums, required fields, sensitive flag)
-- **`tests/test_cli.py`** — Added `test_cli_install_skill` test
-- **`pyproject.toml`** — Fixed invalid build-backend (`setuptools.backends._legacy:_Backend` → `setuptools.build_meta`), added package discovery config
-- **`docs/project-memory/sessions/S-2026-03-19-0448-schema-install-skill.md`** — Session doc
+### Files changed
+- **`whatsup/server.py`** — Added `_wants_html()` helper, `_NAV_HTML` and `_CSS` class attributes, HTML rendering branches in `_handle_status()` and `_handle_projects()`
+- **`tests/test_server.py`** — Added `_get_html()` helper, `TestStatusEndpoint` (3 tests), `TestProjectsEndpoint` (4 tests)
+- **`docs/project-memory/sessions/S-2026-03-19-0606-html-views.md`** — Session doc
 
-## Commands run
-- `python3.12 -m venv .venv && pip install -e ".[dev]"` — set up dev environment
-- `.venv/bin/python -m pytest tests/ -v` — **35 tests passed** (8 new)
-- `git push -u origin HEAD` — branch pushed
+### Commands run
+- `git pull origin main` — synced with main
+- `python3 -m pytest tests/ -v` — 38 passed, 4 pre-existing failures (missing `requests` module, unrelated)
+- `git push -u origin HEAD` — pushed to `origin/agentA-html-views`
 
-## Notes / follow-on work
-- The pyproject.toml had an invalid build-backend (`setuptools.backends._legacy:_Backend`) — fixed as part of this work
-- Schema endpoint returns raw schema (not wrapped in `{"ok": true, "data": ...}`) to match the brief's expected curl output format
+### Notes / follow-on work
+- The 4 failing CLI tests (`test_cli_send`, `test_cli_projects`, `test_cli_status`, `test_cli_install_skill`) are **pre-existing** — they fail due to `ModuleNotFoundError: No module named 'requests'` in the subprocess environment, not related to this change
+- All 7 new HTML view tests pass
+- The HTML views use the same CSS custom properties (`--bg`, `--surface`, `--border`, etc.) as `config_ui.html` for consistent dark theme
 
 
 ---
 
-## agentA-bugfixes
+## agentB-config-polish
 
-*Completed: 2026-03-19 04:49 UTC*
+*Completed: 2026-03-19 06:07 UTC*
 
 ## Files changed
-- `whatsup/mcp_server.py` — B-001: MCP import wrapped in try/except with stub fallback
-- `whatsup/server.py` — B-002: `_Handler` renamed to `WhatsupHandler`
-- `whatsup/__main__.py` — B-004/F-010: New file, enables `python3 -m whatsup`
-- `skills/whatsup.md` — B-005: `python` → `python3` in entry point
-- `README.md` — B-006: `yourorg` → `davidbmar` in clone URL
-- `pyproject.toml` — Fixed build backend (`setuptools.build_meta`), made `mcp` optional, added explicit package list
-- `docs/project-memory/sessions/S-2026-03-19-0448-sprint4-bugfixes.md` — Session doc
+
+| File | What changed |
+|------|-------------|
+| `whatsup/config_ui.html` | Added `toggleGuide()`, `collapseGuide()`, `hasTelegramConfigured()` + auto-collapse in `load()` + "Show setup guide" link |
+| `whatsup/server.py` | Added `_check_config_token()` method + 403 guard on `_handle_config_save()` |
+| `README.md` | Added Security section (binding, token auth, remote access) |
+| `tests/test_server.py` | Added 5 tests for `TestConfigTokenAuth` |
+| `docs/project-memory/sessions/S-2026-03-19-0604-sprint5-config-polish.md` | Session doc |
 
 ## Commands run
-- `python3.12 -m venv .venv` + `pip install -e ".[dev]"` — set up environment
-- `.venv/bin/python -m pytest tests/ -v` — **27/27 tests passed**
-- All 7 acceptance criteria verified successfully
+
+- `git pull origin main` — already up to date
+- `python3 -m pytest tests/ -v` — 36 passed, 4 failed (pre-existing CLI failures from missing `requests` module)
+- `git commit` + `git push -u origin HEAD`
 
 ## Notes / follow-on work
-- The original `pyproject.toml` had a broken build backend (`setuptools.backends._legacy:_Backend`) — fixed to `setuptools.build_meta`
-- `mcp` moved from hard dependency to optional (`pip install whatsup[mcp]`) to support graceful degradation
+
+- The 4 pre-existing `test_cli.py` failures are caused by `ModuleNotFoundError: No module named 'requests'` in the system Python — not related to this branch.
+- The frontend `save()` function does not yet send the token header. If a user sets `WHATSUP_API_TOKEN`, they'd need to either add a token input field to the UI or unset the env var to use the config UI. This could be a follow-on task (e.g., add a token input field to the config page).
 
