@@ -67,19 +67,59 @@
     <span style="color:var(--text2);font-size:20px">&#9660;</span>
   </div>
   <div id="guide-body" style="margin-top:16px;">
-    <ol style="line-height:2;color:var(--text2);padding-left:20px;">
-      <li>Open Telegram and message <strong style="color:var(--accent)">@BotFather</strong></li>
-      <li>Send <code style="background:var(--bg);padding:2px 6px;border-radius:3px">/newbot</code> — follow prompts — copy the <strong style="color:var(--green)">bot token</strong></li>
-      <li>Paste the token in the <strong>Telegram Bot Token</strong> field above</li>
-      <li>Create a <strong>Telegram group</strong> for your project</li>
-      <li>Add your bot to the group (search its username)</li>
-      <li>Send any message in the group, then run:<br>
-        <code style="background:var(--bg);padding:4px 8px;border-radius:3px;display:inline-block;margin-top:4px;font-size:12px">curl https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates | python3 -m json.tool</code><br>
-        <span style="font-size:12px">Look for <code>"chat":{"id":-100XXXXXXXXXX}</code> — that's your group ID</span>
-      </li>
-      <li>Edit your project below: set Transport to <strong>telegram</strong>, paste the Group ID</li>
-      <li>Click <strong style="color:var(--accent)">Save Configuration</strong>, then <strong style="color:var(--green)">Send Test Message</strong></li>
+
+    <h3 style="color:var(--accent);margin-bottom:8px;">Step 1: Create a Telegram Bot</h3>
+    <ol style="line-height:2.2;color:var(--text2);padding-left:20px;margin-bottom:20px;">
+      <li>Open <strong style="color:var(--text)">Telegram</strong> on your phone or desktop</li>
+      <li>Search for <strong style="color:var(--accent)">@BotFather</strong> and start a chat with it</li>
+      <li>Send the command: <code style="background:var(--bg);padding:2px 6px;border-radius:3px">/newbot</code></li>
+      <li>BotFather will ask for a <strong style="color:var(--text)">name</strong> — type anything (e.g. <code style="background:var(--bg);padding:2px 6px;border-radius:3px">My Sprint Bot</code>)</li>
+      <li>Then it asks for a <strong style="color:var(--text)">username</strong> — must end in <code style="background:var(--bg);padding:2px 6px;border-radius:3px">bot</code> (e.g. <code style="background:var(--bg);padding:2px 6px;border-radius:3px">mysprintbot</code>)</li>
+      <li>BotFather replies with your <strong style="color:var(--green)">bot token</strong> — looks like <code style="background:var(--bg);padding:2px 6px;border-radius:3px">123456789:ABCdefGHI...</code></li>
+      <li><strong style="color:var(--text)">Copy the token</strong> and paste it in the "Telegram Bot Token" field below</li>
     </ol>
+
+    <h3 style="color:var(--accent);margin-bottom:8px;">Step 2: Disable Privacy Mode (important!)</h3>
+    <ol style="line-height:2.2;color:var(--text2);padding-left:20px;margin-bottom:20px;">
+      <li>Still in the BotFather chat, send: <code style="background:var(--bg);padding:2px 6px;border-radius:3px">/mybots</code></li>
+      <li>Select your bot from the list</li>
+      <li>Tap <strong style="color:var(--text)">Bot Settings</strong></li>
+      <li>Tap <strong style="color:var(--text)">Group Privacy</strong></li>
+      <li>Tap <strong style="color:var(--text)">Turn off</strong> — this lets the bot see messages in groups (needed to get the group ID)</li>
+    </ol>
+
+    <h3 style="color:var(--accent);margin-bottom:8px;">Step 3: Create a Group and Add the Bot</h3>
+    <ol style="line-height:2.2;color:var(--text2);padding-left:20px;margin-bottom:20px;">
+      <li>In Telegram, create a <strong style="color:var(--text)">new group</strong> (tap the pencil/compose icon → New Group)</li>
+      <li>Name it after your project (e.g. <code style="background:var(--bg);padding:2px 6px;border-radius:3px">grassyknoll-dev</code>)</li>
+      <li>Add your bot as a member — search for the bot username you created (e.g. <code style="background:var(--bg);padding:2px 6px;border-radius:3px">mysprintbot</code>)</li>
+      <li><strong style="color:var(--orange)">Send a message</strong> in the group — type anything like "hello" (this is required for the next step)</li>
+    </ol>
+
+    <h3 style="color:var(--accent);margin-bottom:8px;">Step 4: Get Your Group ID</h3>
+    <div style="color:var(--text2);margin-bottom:8px;">After sending a message in the group, run this in your terminal:</div>
+    <div style="background:var(--bg);padding:12px;border-radius:6px;margin-bottom:8px;overflow-x:auto;">
+      <code style="font-size:12px;color:var(--green);white-space:nowrap;">curl https://api.telegram.org/bot<span style="color:var(--orange)">&lt;YOUR_TOKEN&gt;</span>/getUpdates | python3 -m json.tool</code>
+    </div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">Replace <code style="color:var(--orange)">&lt;YOUR_TOKEN&gt;</code> with the actual token from Step 1.</div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">In the output, look for:</div>
+    <div style="background:var(--bg);padding:8px 12px;border-radius:6px;margin-bottom:8px;">
+      <code style="font-size:12px;">"chat": { "id": <span style="color:var(--green)">-100XXXXXXXXXX</span>, "title": "grassyknoll-dev" }</code>
+    </div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:16px;">The number starting with <strong style="color:var(--green)">-100</strong> is your group ID. Copy it.</div>
+    <div style="background:#d2992215;border:1px solid #d2992240;padding:10px 12px;border-radius:6px;margin-bottom:20px;font-size:13px;color:var(--orange);">
+      <strong>Result is empty?</strong> Make sure you: (1) added the bot to the group, (2) disabled privacy mode in Step 2, (3) sent a message in the group AFTER adding the bot. Then try the curl command again.
+    </div>
+
+    <h3 style="color:var(--accent);margin-bottom:8px;">Step 5: Configure and Test</h3>
+    <ol style="line-height:2.2;color:var(--text2);padding-left:20px;">
+      <li>Scroll down to the <strong style="color:var(--text)">Projects</strong> section below</li>
+      <li>Change the <strong style="color:var(--text)">Transport</strong> dropdown from "console" to <strong style="color:var(--green)">telegram</strong></li>
+      <li>Paste your <strong style="color:var(--text)">Group ID</strong> (the -100... number) into the Group ID field</li>
+      <li>Click <strong style="color:var(--accent)">Save Configuration</strong></li>
+      <li>Click <strong style="color:var(--green)">Send Test Message</strong> — you should see the message appear in your Telegram group!</li>
+    </ol>
+
   </div>
 </div>
 

@@ -205,12 +205,24 @@ class WhatsupHandler(BaseHTTPRequestHandler):
 
     def _handle_index(self) -> None:
         self._send_html("""<!DOCTYPE html><html><head><meta charset="utf-8">
-        <title>whatsup</title></head><body style="font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px;">
-        <h1>whatsup</h1><p>Per-project group-chat messaging tool.</p>
-        <ul><li><a href="/config">Configuration UI</a></li>
-        <li><a href="/status">Transport Status (JSON)</a></li>
-        <li><a href="/projects">Projects (JSON)</a></li>
-        <li><a href="/schema">Config Schema (JSON)</a></li></ul></body></html>""")
+        <title>whatsup</title>
+        <style>body{font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px;background:#0d1117;color:#e6edf3}
+        a{color:#58a6ff}h1{margin-bottom:4px}.sub{color:#8b949e;margin-bottom:24px}
+        .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:16px}
+        .card h2{color:#58a6ff;font-size:16px;margin-bottom:8px}.card p{color:#8b949e;font-size:14px}
+        .btn{display:inline-block;padding:10px 20px;background:#58a6ff;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;margin-top:8px}</style>
+        </head><body>
+        <h1>whatsup</h1>
+        <p class="sub">Per-project group-chat messaging for Afterburner sprints</p>
+        <div class="card"><h2>Get Started</h2>
+        <p>New here? Set up Telegram messaging in 5 minutes.</p>
+        <a href="/config" class="btn">Open Setup Guide &rarr;</a></div>
+        <div class="card"><h2>Quick Links</h2>
+        <p><a href="/config">Configuration UI</a> &mdash; manage transports, projects, and events</p>
+        <p><a href="/status">Transport Status</a> &mdash; check if transports are healthy</p>
+        <p><a href="/projects">Projects</a> &mdash; list configured projects (JSON)</p>
+        <p><a href="/schema">Config Schema</a> &mdash; JSON Schema for plugin integration</p>
+        </div></body></html>""")
 
     def _handle_config_get(self) -> None:
         try:

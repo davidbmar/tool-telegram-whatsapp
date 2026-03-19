@@ -21,14 +21,32 @@ cd tool-telegram-whatsapp
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-# 3. Generate sample config (uses console transport — no credentials needed)
-whatsup init
+# 3. Run setup — creates config, starts server, opens config UI
+python3 cli.py setup
 
-# 4. Send a test message
-whatsup send demo "hello from whatsup"
-
-# 5. See output printed to stdout
+# 4. Follow the setup guide at http://localhost:1202/config to connect Telegram
 ```
+
+### Try it without Telegram first
+
+The setup creates a **console transport** by default — messages print to stdout, no credentials needed:
+
+```bash
+whatsup send demo "hello from whatsup"    # prints to terminal
+whatsup status                             # shows "console: OK"
+```
+
+### Connect to Telegram
+
+The config UI at **http://localhost:1202/config** has a step-by-step setup guide. In short:
+
+1. Message **@BotFather** on Telegram → `/newbot` → get a bot token
+2. Disable privacy mode: `/mybots` → your bot → Bot Settings → Group Privacy → Turn off
+3. Create a Telegram group, add the bot, send a message in the group
+4. Get the group ID: `curl https://api.telegram.org/bot<TOKEN>/getUpdates | python3 -m json.tool`
+5. In the config UI: paste token, set transport to telegram, paste group ID, Save, Send Test
+
+See the full guide with troubleshooting at **http://localhost:1202/config**.
 
 ## Architecture
 
