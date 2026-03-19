@@ -6,7 +6,10 @@ from __future__ import annotations
 # then `core.load_config` etc. still works.
 from whatsup.config import get_all_projects, get_project, load_config  # noqa: F401
 from whatsup.transport import Transport  # noqa: F401
+<<<<<<< HEAD
 from whatsup.transport.telegram import TelegramTransport  # noqa: F401
+=======
+>>>>>>> agentB-tests
 from whatsup.transport.console import ConsoleTransport  # noqa: F401
 
 from whatsup import messages
@@ -25,6 +28,7 @@ def _get_transport(transport_name: str, transports_config: dict):
     if transport_name == "console":
         return ConsoleTransport()
     if transport_name == "telegram":
+        from whatsup.transport.telegram import TelegramTransport
         token = transports_config.get("telegram", {}).get("botToken", "")
         return TelegramTransport(bot_token=token)
     raise ValueError(f"Unknown transport: {transport_name}")
