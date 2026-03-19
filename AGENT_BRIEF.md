@@ -1,4 +1,4 @@
-agentB-core-messages — Sprint 1
+agentC-cli-mcp-skill — Sprint 1
 
 Sprint-Level Context
 
@@ -18,27 +18,32 @@ Constraints
 
 
 Objective
-- Create the core business logic and message formatting modules
+- Create the CLI entry point, MCP server, and Claude skill file
 
 Tasks
-- Create `whatsup/messages.py` (~50 lines):
-  - `format_checkin(slug: str, summary: str, details: str | None = None) -> str` — formats a manual checkin message
-  - `format_sprint_merged(slug: str, sprint: int, branches: int = 0, status: str = "passed", summary: str = "") -> str` — formats a sprint merged notification
-  - `format_test_failure(slug: str, sprint: int, agent: str = "", exit_code: int = 1) -> str` — formats a test failure notification
-  - `format_event(event: str, **kwargs) -> str` — dispatcher that calls the right format function based on event name, raises ValueError for unknown events
-  - Message formats should match these examples:
-    - Checkin: `"Checkin — {slug}\n{summary}\n\n{details}"`
-    - Sprint merged: `"Sprint {sprint} merged — {slug}\n\n{branches} branches · Tests {status}\n\n{summary}"`
-    - Test failure: `"Sprint {sprint} FAILED — {slug}\n\nAgent {agent} merge failed verification\nExit code: {exit_code}"`
-- Create `whatsup/core.py` (~80 lines):
-  - `send(slug: str, message: str) -> dict` — load config, get project, instantiate transport, call send_message
-  - `notify(slug: str, event: str, **data) -> dict` — check if event is in project's notify list, format message via messages.format_event, call send. Return `{"skipped": True, "reason": "..."}` if event not enabled.
-  - `projects() -> list[dict]` — return all configured projects
-  - `status() -> dict` — health check each unique transport, return dict of transport_name → health result
-  - Import `config`, `messages`, and transport classes. Use a helper `_get_transport(transport_name: str, config: dict) -> Transport` that returns the right transport instance based on name ("telegram" → TelegramTransport).
+- Create `cli.py` (~50 lines) at repo root:
+  - Uses `argparse` with subcommands: `send`, `notify`, `projects`, `status`
+  - `send <slug> <message>` — calls `core.send(slug, messages.format_checkin(slug, message))`
+  - `notify <slug> <event>` with optional `--sprint`, `--status`, `--summary`, `--agent`, `--exit-code` flags — calls `core.notify(slug, event, **kwargs)`
+  - `projects` — calls `core.projects()`, prints as formatted table
+  - `status` — calls `core.status()`, prints transport health
+  - `main()` function as entry point, handles errors with sys.exit(1) and user-friendly messages
+- Create `whatsup/mcp_server.py` (~60 lines):
+  - Import `mcp` package and create server: `mcp = Server("tool-telegram-whatsapp")`
+  - Tool `send_checkin(slug: str, summary: str, details: str | None = None) -> str` — wraps core.send with messages.format_checkin
+  - Tool `send_notification(slug: str, event: str, sprint: int | None = None, status: str | None = None, summary: str | None = None) -> str` — wraps core.notify
+  - Tool `whatsup_projects() -> str` — wraps core.projects, returns JSON string
+  - Tool `whatsup_status() -> str` — wraps core.status, returns JSON string
+  - `if __name__ == "__main__"` or `def main()` that runs the MCP server via stdio
+- Create `skills/whatsup.md` in the repo (to be installed to `~/.claude/skills/`):
+  - Skill name: whatsup
+  - When user says `/whatsup <project> <message>` → call `send_checkin` MCP tool
+  - When user says `/whatsup status` → call `whatsup_status` MCP tool
+  - When user says `/whatsup projects` → call `whatsup_projects` MCP tool
+  - Include clear trigger description and usage examples
 
 Acceptance Criteria
-- `from whatsup.messages import format_checkin, format_sprint_merged, format_test_failure, format_event` imports without error
-- `format_checkin("test", "hello")` returns a string containing "Checkin" and "test"
-- `format_event("sprint-merged", slug="test", sprint=1)` returns a string containing "Sprint 1 merged"
-- `from whatsup.core import send, notify, projects, status` imports without error
+- `python cli.py --help` prints usage with send, notify, projects, status subcommands
+- `python cli.py send --help` shows slug and message as required args
+- `from whatsup.mcp_server import mcp` imports without error (or equivalent server object)
+- `skills/whatsup.md` exists and contains skill definition with trigger, usage, and MCP tool mappings
