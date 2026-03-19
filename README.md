@@ -13,19 +13,23 @@ Per-project group-chat messaging for [Afterburner](https://github.com/anthropics
 ## Quick Start
 
 ```bash
-# 1. Clone
+# 1. Clone and install
 git clone https://github.com/davidbmar/tool-telegram-whatsapp.git
 cd tool-telegram-whatsapp
-
-# 2. Install (use a venv to avoid system package conflicts)
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
-# 3. Run setup — creates config, starts server, opens config UI
-python3 cli.py setup
+# 2. Run setup — creates config, starts server, opens config UI
+whatsup setup
 
-# 4. Follow the setup guide at http://localhost:1202/config to connect Telegram
+# 3. Follow the setup guide at http://localhost:1202/config to connect Telegram
+
+# 4. Send a message (after connecting Telegram)
+whatsup send my-project "Hello from whatsup!"
 ```
+
+> **Note:** Always activate the venv first: `source .venv/bin/activate`
+> Or use `python3 cli.py` directly without a venv.
 
 ### Try it without Telegram first
 
