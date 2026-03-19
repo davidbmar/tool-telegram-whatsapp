@@ -62,9 +62,9 @@
 </nav>
 
 <div id="setup-guide" class="card" style="border-color:#58a6ff40;margin-bottom:20px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="document.getElementById('guide-body').style.display=document.getElementById('guide-body').style.display==='none'?'block':'none'">
+  <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleGuide()">
     <h2 style="margin:0">Setup Guide — Connect to Telegram</h2>
-    <span style="color:var(--text2);font-size:20px">&#9660;</span>
+    <span id="guide-chevron" style="color:var(--text2);font-size:20px">&#9660;</span>
   </div>
   <div id="guide-body" style="margin-top:16px;">
 
@@ -122,6 +122,7 @@
 
   </div>
 </div>
+<a id="guide-show-link" href="#" style="display:none;font-size:13px;color:var(--accent);margin-bottom:16px;display:none;" onclick="toggleGuide();return false;">Show setup guide</a>
 
 <div id="app"></div>
 
@@ -146,9 +147,40 @@ function el(tag, attrs, children) {
   return e;
 }
 
+function toggleGuide() {
+  var body = document.getElementById('guide-body');
+  var link = document.getElementById('guide-show-link');
+  var chevron = document.getElementById('guide-chevron');
+  var collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? 'block' : 'none';
+  chevron.textContent = collapsed ? '\u25BC' : '\u25B6';
+  if (link) link.style.display = collapsed ? 'none' : 'inline';
+}
+
+function collapseGuide() {
+  var body = document.getElementById('guide-body');
+  var link = document.getElementById('guide-show-link');
+  var chevron = document.getElementById('guide-chevron');
+  body.style.display = 'none';
+  chevron.textContent = '\u25B6';
+  if (link) link.style.display = 'inline';
+}
+
+function hasTelegramConfigured(cfg) {
+  var projects = cfg.projects || [];
+  for (var i = 0; i < projects.length; i++) {
+    if (projects[i].transport === 'telegram' && projects[i].groupId) return true;
+  }
+  return false;
+}
+
 function load() {
   fetch('/api/config').then(function(r){return r.json()}).then(function(d) {
-    if (d.ok) { config = d.data; configPath = d.path; render(); }
+    if (d.ok) {
+      config = d.data; configPath = d.path;
+      if (hasTelegramConfigured(config)) collapseGuide();
+      render();
+    }
     else {
       var app = document.getElementById('app');
       app.textContent = '';

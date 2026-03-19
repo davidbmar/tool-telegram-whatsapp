@@ -1,18 +1,24 @@
+All tasks complete. Here's the summary:
+
 ---
 
-## Summary
+## Files changed
 
-### Files changed
-- **`whatsup/server.py`** — Added `_wants_html()` helper, `_NAV_HTML` and `_CSS` class attributes, HTML rendering branches in `_handle_status()` and `_handle_projects()`
-- **`tests/test_server.py`** — Added `_get_html()` helper, `TestStatusEndpoint` (3 tests), `TestProjectsEndpoint` (4 tests)
-- **`docs/project-memory/sessions/S-2026-03-19-0606-html-views.md`** — Session doc
+| File | What changed |
+|------|-------------|
+| `whatsup/config_ui.html` | Added `toggleGuide()`, `collapseGuide()`, `hasTelegramConfigured()` + auto-collapse in `load()` + "Show setup guide" link |
+| `whatsup/server.py` | Added `_check_config_token()` method + 403 guard on `_handle_config_save()` |
+| `README.md` | Added Security section (binding, token auth, remote access) |
+| `tests/test_server.py` | Added 5 tests for `TestConfigTokenAuth` |
+| `docs/project-memory/sessions/S-2026-03-19-0604-sprint5-config-polish.md` | Session doc |
 
-### Commands run
-- `git pull origin main` — synced with main
-- `python3 -m pytest tests/ -v` — 38 passed, 4 pre-existing failures (missing `requests` module, unrelated)
-- `git push -u origin HEAD` — pushed to `origin/agentA-html-views`
+## Commands run
 
-### Notes / follow-on work
-- The 4 failing CLI tests (`test_cli_send`, `test_cli_projects`, `test_cli_status`, `test_cli_install_skill`) are **pre-existing** — they fail due to `ModuleNotFoundError: No module named 'requests'` in the subprocess environment, not related to this change
-- All 7 new HTML view tests pass
-- The HTML views use the same CSS custom properties (`--bg`, `--surface`, `--border`, etc.) as `config_ui.html` for consistent dark theme
+- `git pull origin main` — already up to date
+- `python3 -m pytest tests/ -v` — 36 passed, 4 failed (pre-existing CLI failures from missing `requests` module)
+- `git commit` + `git push -u origin HEAD`
+
+## Notes / follow-on work
+
+- The 4 pre-existing `test_cli.py` failures are caused by `ModuleNotFoundError: No module named 'requests'` in the system Python — not related to this branch.
+- The frontend `save()` function does not yet send the token header. If a user sets `WHATSUP_API_TOKEN`, they'd need to either add a token input field to the UI or unset the env var to use the config UI. This could be a follow-on task (e.g., add a token input field to the config page).
