@@ -12,11 +12,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-<<<<<<< HEAD
-dev = ["pytest"]
-=======
 dev = ["pytest>=7.0"]
->>>>>>> agentB-tests
 
 [project.scripts]
 whatsup = "cli:main"
