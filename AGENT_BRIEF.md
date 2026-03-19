@@ -1,4 +1,4 @@
-agentA-transport-config — Sprint 1
+agentB-core-messages — Sprint 1
 
 Sprint-Level Context
 
@@ -18,30 +18,27 @@ Constraints
 
 
 Objective
-- Create the project packaging, config loader, and pluggable transport layer with Telegram implementation
+- Create the core business logic and message formatting modules
 
 Tasks
-- Create `pyproject.toml` with package name `whatsup`, Python >=3.11, dependencies `requests` and `mcp`, and entry point `whatsup = "cli:main"`
-- Create `whatsup/__init__.py` with `__version__ = "0.1.0"`
-- Create `whatsup/config.py` (~40 lines):
-  - `load_config() -> dict` — reads `~/.config/tool-telegram-whatsapp/config.json`, returns parsed JSON
-  - `get_project(slug: str) -> dict` — returns project config (transport, groupId, notify list) or raises ValueError
-  - `get_all_projects() -> list[dict]` — returns all configured projects with their slugs
-  - If config file doesn't exist, raise FileNotFoundError with helpful message pointing to the expected path
-- Create `whatsup/transport/__init__.py` (~20 lines):
-  - Define `Transport` as a `typing.Protocol` with three methods: `send_message(self, group_id: str, text: str) -> dict`, `create_group(self, name: str, members: list[str]) -> str`, `health_check(self) -> dict`
-  - Export `Transport`
-- Create `whatsup/transport/telegram.py` (~80 lines):
-  - Class `TelegramTransport` implementing the Transport protocol
-  - Constructor takes `bot_token: str`
-  - `send_message` — POST to `https://api.telegram.org/bot{token}/sendMessage` with `chat_id` and `text` params, return response JSON
-  - `create_group` — POST to `createChatInviteLink` (Telegram can't create groups via bot API, so just create an invite link for an existing group), return the invite link
-  - `health_check` — GET `https://api.telegram.org/bot{token}/getMe`, return bot info dict on success, `{"ok": False, "error": str}` on failure
-  - Handle request errors gracefully — return error dicts, don't raise
+- Create `whatsup/messages.py` (~50 lines):
+  - `format_checkin(slug: str, summary: str, details: str | None = None) -> str` — formats a manual checkin message
+  - `format_sprint_merged(slug: str, sprint: int, branches: int = 0, status: str = "passed", summary: str = "") -> str` — formats a sprint merged notification
+  - `format_test_failure(slug: str, sprint: int, agent: str = "", exit_code: int = 1) -> str` — formats a test failure notification
+  - `format_event(event: str, **kwargs) -> str` — dispatcher that calls the right format function based on event name, raises ValueError for unknown events
+  - Message formats should match these examples:
+    - Checkin: `"Checkin — {slug}\n{summary}\n\n{details}"`
+    - Sprint merged: `"Sprint {sprint} merged — {slug}\n\n{branches} branches · Tests {status}\n\n{summary}"`
+    - Test failure: `"Sprint {sprint} FAILED — {slug}\n\nAgent {agent} merge failed verification\nExit code: {exit_code}"`
+- Create `whatsup/core.py` (~80 lines):
+  - `send(slug: str, message: str) -> dict` — load config, get project, instantiate transport, call send_message
+  - `notify(slug: str, event: str, **data) -> dict` — check if event is in project's notify list, format message via messages.format_event, call send. Return `{"skipped": True, "reason": "..."}` if event not enabled.
+  - `projects() -> list[dict]` — return all configured projects
+  - `status() -> dict` — health check each unique transport, return dict of transport_name → health result
+  - Import `config`, `messages`, and transport classes. Use a helper `_get_transport(transport_name: str, config: dict) -> Transport` that returns the right transport instance based on name ("telegram" → TelegramTransport).
 
 Acceptance Criteria
-- `from whatsup.config import load_config, get_project` imports without error
-- `from whatsup.transport import Transport` imports without error
-- `from whatsup.transport.telegram import TelegramTransport` imports without error
-- TelegramTransport implements all 3 Transport protocol methods
-- Config loader returns meaningful errors when file is missing
+- `from whatsup.messages import format_checkin, format_sprint_merged, format_test_failure, format_event` imports without error
+- `format_checkin("test", "hello")` returns a string containing "Checkin" and "test"
+- `format_event("sprint-merged", slug="test", sprint=1)` returns a string containing "Sprint 1 merged"
+- `from whatsup.core import send, notify, projects, status` imports without error
