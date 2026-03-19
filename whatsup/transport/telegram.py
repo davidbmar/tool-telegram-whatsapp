@@ -65,7 +65,9 @@ class TelegramTransport:
             )
             data = resp.json()
             if data.get("ok"):
-                return data["result"]
+                result = data["result"]
+                result["ok"] = True
+                return result
             return {"ok": False, "error": data.get("description", "unknown")}
         except requests.RequestException as exc:
             return {"ok": False, "error": str(exc)}
