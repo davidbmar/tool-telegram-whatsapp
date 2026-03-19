@@ -1,11 +1,10 @@
-# Sprint 3 — Agent Notes
+# Sprint 4 — Agent Notes
 
-*Started: 2026-03-19 04:31 UTC*
+*Started: 2026-03-19 04:45 UTC*
 
-Phase 1 Agents: 3
-- agentA-console-transport-init
-- agentB-tests
-- agentC-readme-docs
+Phase 1 Agents: 2
+- agentA-bugfixes
+- agentB-schema-skill
 
 Phase 2 Agents: 0
 (none)
@@ -14,90 +13,49 @@ Automated summaries from each agent are appended below as they complete.
 
 ---
 
-## agentA-console-transport-init
+## agentB-schema-skill
 
-*Completed: 2026-03-19 04:34 UTC*
+*Completed: 2026-03-19 04:49 UTC*
 
 ## Files changed
-| File | Change |
-|------|--------|
-| `whatsup/transport/console.py` | **Created** — `ConsoleTransport` class (~18 lines) |
-| `whatsup/core.py` | Added `ConsoleTransport` import + `"console"` case in `_get_transport()` |
-| `cli.py` | Added `init` subcommand with sample config generation |
-| `pyproject.toml` | Added `[project.optional-dependencies] dev = ["pytest"]` |
-| `docs/project-memory/sessions/S-2026-03-19-0433-console-transport-init.md` | Session doc |
+- **`whatsup/server.py`** — Added `GET /schema` endpoint returning JSON Schema with `tool`, `version`, `globalConfig`, `projectConfig`
+- **`cli.py`** — Added `install-skill` subcommand that copies `skills/whatsup.md` to `~/.claude/skills/whatsup.md`
+- **`tests/test_server.py`** — New file with 7 tests for `/schema` endpoint (tool name, version, properties, enums, required fields, sensitive flag)
+- **`tests/test_cli.py`** — Added `test_cli_install_skill` test
+- **`pyproject.toml`** — Fixed invalid build-backend (`setuptools.backends._legacy:_Backend` → `setuptools.build_meta`), added package discovery config
+- **`docs/project-memory/sessions/S-2026-03-19-0448-schema-install-skill.md`** — Session doc
 
 ## Commands run
-- `python3 -c "from whatsup.transport.console import ConsoleTransport"` — import OK
-- `python3 cli.py init` — creates config, second run detects existing config
-- `python3 cli.py send demo "Hello world"` — prints to console via ConsoleTransport
-- `python3 cli.py projects` — shows demo project with console transport
-- `python3 cli.py status` — shows `console: OK`
+- `python3.12 -m venv .venv && pip install -e ".[dev]"` — set up dev environment
+- `.venv/bin/python -m pytest tests/ -v` — **35 tests passed** (8 new)
+- `git push -u origin HEAD` — branch pushed
 
 ## Notes / follow-on work
-- **Config format decision**: The brief showed `projects` as a dict, but existing `config.py` expects a list with `slug` fields. Used the list format to avoid breaking existing code. If a future task wants the dict format, `config.py` would need updating.
-- The test config was created at `~/.config/tool-telegram-whatsapp/config.json` during acceptance testing — this may need cleanup if other agents also create configs there.
+- The pyproject.toml had an invalid build-backend (`setuptools.backends._legacy:_Backend`) — fixed as part of this work
+- Schema endpoint returns raw schema (not wrapped in `{"ok": true, "data": ...}`) to match the brief's expected curl output format
 
 
 ---
 
-## agentC-readme-docs
+## agentA-bugfixes
 
-*Completed: 2026-03-19 04:34 UTC*
-
-**Files changed:**
-- `README.md` — new, 319 lines, comprehensive GitHub-ready documentation
-- `docs/project-memory/sessions/S-2026-03-19-0433-sprint3-readme-docs.md` — session doc
-
-**Commands run:**
-- `git fetch origin` / `git pull origin main`
-- `wc -l README.md` — verified 319 lines (>100 requirement)
-- `python3 -m pytest` — 0 tests collected, pass (test suite being added by other agents)
-- `git commit` / `git push -u origin HEAD`
-
-**Acceptance criteria met:**
-- README >100 lines (319)
-- All 13 required sections present (Header, What It Does, Quick Start, Architecture, Configuration, CLI Reference, REST API, MCP Server, Claude Skill, Transports, Afterburner Integration, Development, License)
-- Quick Start works literally: clone → install → init → send demo → see output
-- Config reference documents every field in config.json
-- All 6 CLI subcommands documented with examples
-- Skills install note included in Claude Skill section
-
-**Notes / follow-on:**
-- `whatsup init` command is being added by another sprint agent — Quick Start depends on it
-- Console transport also being added by another agent — referenced as available in Transports section
-- Badge URLs use shields.io placeholders — update with real CI/repo badges when ready
-
-
----
-
-## agentB-tests
-
-*Completed: 2026-03-19 04:35 UTC*
+*Completed: 2026-03-19 04:49 UTC*
 
 ## Files changed
-
-| File | Action |
-|---|---|
-| `whatsup/transport/console.py` | **Created** — ConsoleTransport (prints to stdout, always healthy) |
-| `whatsup/core.py` | **Modified** — added console transport support, lazy TelegramTransport import |
-| `pyproject.toml` | **Modified** — added `pytest>=7.0` to dev dependencies |
-| `tests/__init__.py` | **Created** — package marker |
-| `tests/conftest.py` | **Created** — `tmp_config` and `clean_history` fixtures |
-| `tests/test_messages.py` | **Created** — 9 tests (all 5 formatters + dispatch) |
-| `tests/test_config.py` | **Created** — 5 tests (load, missing, get_project, unknown, get_all) |
-| `tests/test_core.py` | **Created** — 5 tests (send, notify in/out of list, projects, status) |
-| `tests/test_history.py` | **Created** — 4 tests (create, append, read back, limit) |
-| `tests/test_cli.py` | **Created** — 4 tests (help, send, projects, status via subprocess) |
-| `docs/project-memory/sessions/S-2026-03-19-0434-sprint3-test-suite.md` | **Created** — session doc |
+- `whatsup/mcp_server.py` — B-001: MCP import wrapped in try/except with stub fallback
+- `whatsup/server.py` — B-002: `_Handler` renamed to `WhatsupHandler`
+- `whatsup/__main__.py` — B-004/F-010: New file, enables `python3 -m whatsup`
+- `skills/whatsup.md` — B-005: `python` → `python3` in entry point
+- `README.md` — B-006: `yourorg` → `davidbmar` in clone URL
+- `pyproject.toml` — Fixed build backend (`setuptools.build_meta`), made `mcp` optional, added explicit package list
+- `docs/project-memory/sessions/S-2026-03-19-0448-sprint4-bugfixes.md` — Session doc
 
 ## Commands run
-
-- `python3 -m pytest tests/ -v` → **27 passed** in 0.38s
-- `git push -u origin HEAD` → pushed `agentB-tests` branch
+- `python3.12 -m venv .venv` + `pip install -e ".[dev]"` — set up environment
+- `.venv/bin/python -m pytest tests/ -v` — **27/27 tests passed**
+- All 7 acceptance criteria verified successfully
 
 ## Notes / follow-on work
-
-- **Lazy TelegramTransport import**: Moved `from whatsup.transport.telegram import TelegramTransport` inside `_get_transport()` so the CLI works without `requests` when using console transport. The top-level re-export `TelegramTransport` was removed from `core.py` — if anything imported it from there (unlikely given existing code), it should import from `whatsup.transport.telegram` directly.
-- **27 tests, zero network access**: All tests use console transport and temporary config/history dirs via monkeypatch.
+- The original `pyproject.toml` had a broken build backend (`setuptools.backends._legacy:_Backend`) — fixed to `setuptools.build_meta`
+- `mcp` moved from hard dependency to optional (`pip install whatsup[mcp]`) to support graceful degradation
 
