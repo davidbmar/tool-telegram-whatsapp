@@ -14,7 +14,7 @@ Per-project group-chat messaging for [Afterburner](https://github.com/anthropics
 
 ```bash
 # 1. Clone
-git clone https://github.com/yourorg/tool-telegram-whatsapp.git
+git clone https://github.com/davidbmar/tool-telegram-whatsapp.git
 cd tool-telegram-whatsapp
 
 # 2. Install

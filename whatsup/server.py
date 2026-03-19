@@ -32,7 +32,7 @@ class _ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 # Request handler
 # ------------------------------------------------------------------
 
-class _Handler(BaseHTTPRequestHandler):
+class WhatsupHandler(BaseHTTPRequestHandler):
 
     def _send_json(self, data: dict, status: int = 200) -> None:
         body = json.dumps(data).encode()
@@ -197,7 +197,7 @@ def main(argv: list[str] | None = None) -> None:
     port = args.port
     _kill_stale_server(port)
 
-    server = _ThreadedHTTPServer(("", port), _Handler)
+    server = _ThreadedHTTPServer(("", port), WhatsupHandler)
 
     # Graceful shutdown on SIGINT / SIGTERM
     def _shutdown(signum, _frame):

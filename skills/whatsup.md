@@ -44,4 +44,4 @@ Call the `whatsup_projects` MCP tool (no arguments). Returns all configured proj
 
 Server name: `tool-telegram-whatsapp`
 Transport: stdio
-Entry point: `python -m whatsup.mcp_server`
+Entry point: `python3 -m whatsup.mcp_server`

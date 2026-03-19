@@ -1,13 +1,38 @@
 """MCP server exposing whatsup tools for Claude Code integration."""
 
 import json
+import sys
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+except ImportError:
+    FastMCP = None
 
 from whatsup import core
 from whatsup import messages
 
-mcp = FastMCP("tool-telegram-whatsapp")
+
+def _mcp_not_installed():
+    print(
+        "MCP package not installed. Install with: pip install mcp",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+if FastMCP is None:
+    # Create a minimal stub so the module can still be imported,
+    # but running the server will print a helpful error and exit.
+    class _StubMCP:
+        def __init__(self, *a, **kw): pass
+        def tool(self):
+            def _dec(fn): return fn
+            return _dec
+        def run(self, **kw): _mcp_not_installed()
+
+    mcp = _StubMCP()
+else:
+    mcp = FastMCP("tool-telegram-whatsapp")
 
 
 @mcp.tool()
