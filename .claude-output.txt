@@ -1,1 +1,27 @@
-The background server test completed successfully — output was already reviewed earlier and all endpoints returned correct JSON responses. Work is complete and pushed.
+All done. Here's the summary:
+
+## Files changed
+
+| File | Action |
+|---|---|
+| `whatsup/transport/console.py` | **Created** — ConsoleTransport (prints to stdout, always healthy) |
+| `whatsup/core.py` | **Modified** — added console transport support, lazy TelegramTransport import |
+| `pyproject.toml` | **Modified** — added `pytest>=7.0` to dev dependencies |
+| `tests/__init__.py` | **Created** — package marker |
+| `tests/conftest.py` | **Created** — `tmp_config` and `clean_history` fixtures |
+| `tests/test_messages.py` | **Created** — 9 tests (all 5 formatters + dispatch) |
+| `tests/test_config.py` | **Created** — 5 tests (load, missing, get_project, unknown, get_all) |
+| `tests/test_core.py` | **Created** — 5 tests (send, notify in/out of list, projects, status) |
+| `tests/test_history.py` | **Created** — 4 tests (create, append, read back, limit) |
+| `tests/test_cli.py` | **Created** — 4 tests (help, send, projects, status via subprocess) |
+| `docs/project-memory/sessions/S-2026-03-19-0434-sprint3-test-suite.md` | **Created** — session doc |
+
+## Commands run
+
+- `python3 -m pytest tests/ -v` → **27 passed** in 0.38s
+- `git push -u origin HEAD` → pushed `agentB-tests` branch
+
+## Notes / follow-on work
+
+- **Lazy TelegramTransport import**: Moved `from whatsup.transport.telegram import TelegramTransport` inside `_get_transport()` so the CLI works without `requests` when using console transport. The top-level re-export `TelegramTransport` was removed from `core.py` — if anything imported it from there (unlikely given existing code), it should import from `whatsup.transport.telegram` directly.
+- **27 tests, zero network access**: All tests use console transport and temporary config/history dirs via monkeypatch.
