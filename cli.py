@@ -3,9 +3,11 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from whatsup import core
 from whatsup import messages
+from whatsup.config import CONFIG_PATH
 
 
 def main():
@@ -36,6 +38,9 @@ def main():
     # status
     sub.add_parser("status", help="Check transport health")
 
+    # init
+    sub.add_parser("init", help="Create sample config for console transport")
+
     # server
     p_server = sub.add_parser("server", help="Start the REST API server")
     p_server.add_argument("--port", type=int, default=None, help="Port (default: 1202)")
@@ -47,7 +52,37 @@ def main():
         sys.exit(1)
 
     try:
-        if args.command == "send":
+        if args.command == "init":
+            if CONFIG_PATH.exists():
+                print(f"Config already exists at {CONFIG_PATH}")
+                return
+            sample = {
+                "transports": {
+                    "console": {},
+                    "telegram": {"botToken": "YOUR_BOT_TOKEN_HERE"},
+                },
+                "projects": [
+                    {
+                        "slug": "demo",
+                        "transport": "console",
+                        "groupId": "demo-group",
+                        "notify": [
+                            "sprint-merged",
+                            "test-failure",
+                            "checkin",
+                            "sprint-started",
+                            "agent-completed",
+                        ],
+                    }
+                ],
+            }
+            CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            CONFIG_PATH.write_text(json.dumps(sample, indent=2) + "\n", encoding="utf-8")
+            print(f"Config created at {CONFIG_PATH}")
+            print("Test with: whatsup send demo 'Hello world'")
+            return
+
+        elif args.command == "send":
             text = messages.format_checkin(args.slug, args.message)
             result = core.send(args.slug, text)
             print(json.dumps(result, indent=2))
