@@ -1,52 +1,49 @@
-agentC-readme-docs — Sprint 3
+agentA-bugfixes — Sprint 4
 
 Previous Sprint Summary
 ─────────────────────────────────────────
-- Sprint 2 shipped: REST API server on :1202, sprint-started + agent-completed formatters, real core.py business logic, JSONL history, .gitignore
-- Known issues: MCP server can't import (`mcp` package not in system Python), no test suite, no sample config, README is scaffolding only
+- Sprint 3 shipped: console transport, whatsup init, 27 pytest tests, comprehensive README
+- Open bugs: B-001 (MCP import), B-004 (__main__.py), B-005 (skill typo), B-006 (README URL)
+- Open features: F-003 (install-skill), F-005 (schema endpoint), F-006 (register), F-008 (tool_config), F-010 (__main__)
 ─────────────────────────────────────────
 
 Sprint-Level Context
 
 Goal
-- Add comprehensive test suite so the tool is independently testable
-- Fix MCP server dependency and make all interfaces work out of the box
-- Add `whatsup init` command to generate sample config
-- Add console transport for testing without Telegram credentials
-- Write proper README.md with installation, quickstart, and API docs
+- Fix all remaining bugs (MCP import, __main__.py, skill typo, README URL)
+- Add /schema endpoint for tool plugin system integration
+- Add `whatsup install-skill` command
+- Polish for production readiness
 
 Constraints
 - Python 3.11+, use `python3` in all commands
-- Tests use pytest — add `pytest` to dev dependencies in pyproject.toml
-- Console transport prints to stdout instead of calling Telegram API — useful for testing and demos
-- `whatsup init` creates `~/.config/tool-telegram-whatsapp/config.json` with a sample config using console transport
-- README must be GitHub-ready with badges, installation, quickstart, config reference, and interface docs
+- MCP import must be optional — tool should work without `mcp` package installed (graceful degradation)
+- `__main__.py` should allow `python3 -m whatsup` to show help and `python3 -m whatsup.server` to start server
+- Tests must still pass: `.venv/bin/python -m pytest tests/ -v`
 - Agents run non-interactively — MUST NOT ask for confirmation or approval
-- Existing imports must not break
 
 
 Objective
-- Write a comprehensive README.md for the GitHub repo
+- Fix all open bugs and add __main__.py entry points
 
 Tasks
-- Rewrite `README.md` at repo root (~150 lines) with these sections:
-  - **Header**: project name, one-line description, badges placeholder
-  - **What It Does**: 2-3 sentences explaining the tool — per-project messaging for Afterburner sprints via Telegram/WhatsApp
-  - **Quick Start**: 5 steps — clone, pip install -e, whatsup init, whatsup send demo "hello", see output
-  - **Architecture**: the "four interfaces, one core" diagram from the design docs
-  - **Configuration**: full config.json reference with all fields documented
-  - **CLI Reference**: all subcommands with usage examples (send, notify, projects, status, server, init)
-  - **REST API Reference**: all endpoints with request/response examples
-  - **MCP Server**: how to register in .mcp.json, available tools
-  - **Claude Skill**: how /whatsup works
-  - **Transports**: console (for testing), telegram (for production), whatsapp (planned)
-  - **Afterburner Integration**: how POST_MERGE_HOOKS wiring works
-  - **Development**: how to run tests, project structure
-  - **License**: MIT
-- Install `skills/whatsup.md` — add a note in README about copying it to `~/.claude/skills/`
+- Fix B-001: Make MCP import optional in `whatsup/mcp_server.py`:
+  - Wrap the `from mcp.server.fastmcp import FastMCP` import in a try/except
+  - If `mcp` is not installed, define a stub that prints "MCP package not installed. Install with: pip install mcp" and exits
+  - The rest of the package (CLI, REST, core) must work without `mcp` installed
+- Fix B-004/F-010: Create `whatsup/__main__.py` (~15 lines):
+  - When run as `python3 -m whatsup`, show help (delegate to cli.py main)
+  - This also fixes `python3 -m whatsup.server` since Python resolves module paths
+- Fix B-005: In `skills/whatsup.md`, change `python -m whatsup.mcp_server` to `python3 -m whatsup.mcp_server`
+- Fix B-006: In `README.md`, change `yourorg` to `davidbmar` in the clone URL
+- Fix B-002: In `whatsup/server.py`, rename `_Handler` to `WhatsupHandler` so it's importable
+- Add `whatsup/__main__.py` that imports and calls `cli.main()`
 
 Acceptance Criteria
-- README.md at repo root is >100 lines with all sections listed above
-- Quick Start section works if followed literally (clone → init → send demo)
-- Config reference documents every field in config.json
-- All 5 CLI subcommands are documented with examples
+- `python3 -c "from whatsup.core import send; print('ok')"` works (always worked, regression check)
+- `python3 -m whatsup --help` shows CLI help
+- `python3 -m whatsup.server --help` shows server help
+- `python3 -c "from whatsup.server import WhatsupHandler; print('ok')"` works
+- `grep 'davidbmar' README.md` finds the clone URL
+- `grep 'python3' skills/whatsup.md` finds the corrected entry point
+- MCP server gracefully prints error when `mcp` package is missing
