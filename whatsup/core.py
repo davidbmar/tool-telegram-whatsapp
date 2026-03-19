@@ -7,6 +7,7 @@ from __future__ import annotations
 from whatsup.config import get_all_projects, get_project, load_config  # noqa: F401
 from whatsup.transport import Transport  # noqa: F401
 from whatsup.transport.telegram import TelegramTransport  # noqa: F401
+from whatsup.transport.console import ConsoleTransport  # noqa: F401
 
 from whatsup import messages
 from whatsup.config import get_all_projects as _get_all_projects
@@ -19,8 +20,10 @@ from whatsup.history import log_message
 # Helpers
 # ------------------------------------------------------------------
 
-def _get_transport(transport_name: str, transports_config: dict) -> TelegramTransport:
+def _get_transport(transport_name: str, transports_config: dict):
     """Return a transport instance based on *transport_name*."""
+    if transport_name == "console":
+        return ConsoleTransport()
     if transport_name == "telegram":
         token = transports_config.get("telegram", {}).get("botToken", "")
         return TelegramTransport(bot_token=token)
