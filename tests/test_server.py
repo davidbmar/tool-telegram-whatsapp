@@ -7,13 +7,13 @@ import urllib.request
 
 import pytest
 
-from whatsup.server import _ThreadedHTTPServer, _Handler
+from whatsup.server import _ThreadedHTTPServer, WhatsupHandler
 
 
 @pytest.fixture()
 def server():
     """Start the server on an ephemeral port and yield (host, port)."""
-    httpd = _ThreadedHTTPServer(("127.0.0.1", 0), _Handler)
+    httpd = _ThreadedHTTPServer(("127.0.0.1", 0), WhatsupHandler)
     port = httpd.server_address[1]
     t = threading.Thread(target=httpd.serve_forever, daemon=True)
     t.start()
