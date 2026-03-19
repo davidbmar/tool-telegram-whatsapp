@@ -1,26 +1,18 @@
-Done.
+Done. Here's the summary:
 
----
+## Files changed
+- **`whatsup/server.py`** — Added `GET /schema` endpoint returning JSON Schema with `tool`, `version`, `globalConfig`, `projectConfig`
+- **`cli.py`** — Added `install-skill` subcommand that copies `skills/whatsup.md` to `~/.claude/skills/whatsup.md`
+- **`tests/test_server.py`** — New file with 7 tests for `/schema` endpoint (tool name, version, properties, enums, required fields, sensitive flag)
+- **`tests/test_cli.py`** — Added `test_cli_install_skill` test
+- **`pyproject.toml`** — Fixed invalid build-backend (`setuptools.backends._legacy:_Backend` → `setuptools.build_meta`), added package discovery config
+- **`docs/project-memory/sessions/S-2026-03-19-0448-schema-install-skill.md`** — Session doc
 
-**Files changed:**
-- `README.md` — new, 319 lines, comprehensive GitHub-ready documentation
-- `docs/project-memory/sessions/S-2026-03-19-0433-sprint3-readme-docs.md` — session doc
+## Commands run
+- `python3.12 -m venv .venv && pip install -e ".[dev]"` — set up dev environment
+- `.venv/bin/python -m pytest tests/ -v` — **35 tests passed** (8 new)
+- `git push -u origin HEAD` — branch pushed
 
-**Commands run:**
-- `git fetch origin` / `git pull origin main`
-- `wc -l README.md` — verified 319 lines (>100 requirement)
-- `python3 -m pytest` — 0 tests collected, pass (test suite being added by other agents)
-- `git commit` / `git push -u origin HEAD`
-
-**Acceptance criteria met:**
-- README >100 lines (319)
-- All 13 required sections present (Header, What It Does, Quick Start, Architecture, Configuration, CLI Reference, REST API, MCP Server, Claude Skill, Transports, Afterburner Integration, Development, License)
-- Quick Start works literally: clone → install → init → send demo → see output
-- Config reference documents every field in config.json
-- All 6 CLI subcommands documented with examples
-- Skills install note included in Claude Skill section
-
-**Notes / follow-on:**
-- `whatsup init` command is being added by another sprint agent — Quick Start depends on it
-- Console transport also being added by another agent — referenced as available in Transports section
-- Badge URLs use shields.io placeholders — update with real CI/repo badges when ready
+## Notes / follow-on work
+- The pyproject.toml had an invalid build-backend (`setuptools.backends._legacy:_Backend`) — fixed as part of this work
+- Schema endpoint returns raw schema (not wrapped in `{"ok": true, "data": ...}`) to match the brief's expected curl output format
