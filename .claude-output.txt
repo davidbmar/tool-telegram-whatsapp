@@ -1,18 +1,18 @@
-Done. Here's the summary:
+---
 
-## Files changed
-- **`whatsup/server.py`** — Added `GET /schema` endpoint returning JSON Schema with `tool`, `version`, `globalConfig`, `projectConfig`
-- **`cli.py`** — Added `install-skill` subcommand that copies `skills/whatsup.md` to `~/.claude/skills/whatsup.md`
-- **`tests/test_server.py`** — New file with 7 tests for `/schema` endpoint (tool name, version, properties, enums, required fields, sensitive flag)
-- **`tests/test_cli.py`** — Added `test_cli_install_skill` test
-- **`pyproject.toml`** — Fixed invalid build-backend (`setuptools.backends._legacy:_Backend` → `setuptools.build_meta`), added package discovery config
-- **`docs/project-memory/sessions/S-2026-03-19-0448-schema-install-skill.md`** — Session doc
+## Summary
 
-## Commands run
-- `python3.12 -m venv .venv && pip install -e ".[dev]"` — set up dev environment
-- `.venv/bin/python -m pytest tests/ -v` — **35 tests passed** (8 new)
-- `git push -u origin HEAD` — branch pushed
+### Files changed
+- **`whatsup/server.py`** — Added `_wants_html()` helper, `_NAV_HTML` and `_CSS` class attributes, HTML rendering branches in `_handle_status()` and `_handle_projects()`
+- **`tests/test_server.py`** — Added `_get_html()` helper, `TestStatusEndpoint` (3 tests), `TestProjectsEndpoint` (4 tests)
+- **`docs/project-memory/sessions/S-2026-03-19-0606-html-views.md`** — Session doc
 
-## Notes / follow-on work
-- The pyproject.toml had an invalid build-backend (`setuptools.backends._legacy:_Backend`) — fixed as part of this work
-- Schema endpoint returns raw schema (not wrapped in `{"ok": true, "data": ...}`) to match the brief's expected curl output format
+### Commands run
+- `git pull origin main` — synced with main
+- `python3 -m pytest tests/ -v` — 38 passed, 4 pre-existing failures (missing `requests` module, unrelated)
+- `git push -u origin HEAD` — pushed to `origin/agentA-html-views`
+
+### Notes / follow-on work
+- The 4 failing CLI tests (`test_cli_send`, `test_cli_projects`, `test_cli_status`, `test_cli_install_skill`) are **pre-existing** — they fail due to `ModuleNotFoundError: No module named 'requests'` in the subprocess environment, not related to this change
+- All 7 new HTML view tests pass
+- The HTML views use the same CSS custom properties (`--bg`, `--surface`, `--border`, etc.) as `config_ui.html` for consistent dark theme
