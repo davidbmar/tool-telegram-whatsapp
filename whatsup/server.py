@@ -61,6 +61,49 @@ class WhatsupHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _wants_html(self) -> bool:
+        """Return True when the client prefers an HTML response."""
+        accept = self.headers.get("Accept", "")
+        return "text/html" in accept
+
+    # --- HTML view helpers -------------------------------------------
+
+    _NAV_HTML = (
+        '<nav class="nav">'
+        '<a href="/">Home</a>'
+        '<a href="/config">Config</a>'
+        '<a href="/status">Status</a>'
+        '<a href="/projects">Projects</a>'
+        '<a href="/schema">Schema</a>'
+        '</nav>'
+    )
+
+    _CSS = (
+        ":root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;"
+        "--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;"
+        "--font:system-ui,-apple-system,sans-serif;--mono:'SF Mono',Consolas,monospace}"
+        "*{box-sizing:border-box;margin:0;padding:0}"
+        "body{font-family:var(--font);background:var(--bg);color:var(--text);"
+        "max-width:800px;margin:0 auto;padding:20px}"
+        "h1{font-size:24px;margin-bottom:4px}"
+        ".subtitle{color:var(--text2);margin-bottom:24px;font-size:14px}"
+        ".nav{display:flex;gap:16px;margin-bottom:24px;font-size:14px}"
+        ".nav a{color:var(--text2);text-decoration:none}"
+        ".nav a:hover{color:var(--accent)}"
+        ".card{background:var(--surface);border:1px solid var(--border);"
+        "border-radius:8px;padding:20px;margin-bottom:16px}"
+        ".card h2{font-size:16px;margin-bottom:12px;color:var(--accent)}"
+        "table{width:100%;border-collapse:collapse;font-size:14px}"
+        "th{text-align:left;color:var(--text2);padding:8px 12px;"
+        "border-bottom:1px solid var(--border)}"
+        "td{padding:8px 12px;border-bottom:1px solid var(--border)}"
+        ".badge{display:inline-block;padding:2px 8px;border-radius:4px;"
+        "font-size:12px;background:var(--surface);border:1px solid var(--border);"
+        "margin:2px}"
+        ".dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}"
+        ".dot.green{background:var(--green)}.dot.red{background:var(--red)}"
+    )
+
     # --- GET routes -------------------------------------------------
 
     def do_GET(self) -> None:  # noqa: N802
@@ -138,14 +181,67 @@ class WhatsupHandler(BaseHTTPRequestHandler):
     def _handle_projects(self) -> None:
         try:
             result = core.projects()
-            self._send_json({"ok": True, "data": result})
+            if self._wants_html():
+                rows = ""
+                for proj in result:
+                    slug = proj.get("slug", "—")
+                    transport = proj.get("transport", "console")
+                    group_id = proj.get("groupId", "—")
+                    badges = "".join(
+                        f'<span class="badge">{evt}</span>'
+                        for evt in proj.get("notify", [])
+                    ) or "—"
+                    rows += (
+                        f"<tr><td>{slug}</td><td>{transport}</td>"
+                        f"<td>{group_id}</td><td>{badges}</td></tr>"
+                    )
+                html = (
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                    "<title>whatsup — Projects</title>"
+                    f"<style>{self._CSS}</style></head><body>"
+                    f"{self._NAV_HTML}"
+                    "<h1>Projects</h1>"
+                    '<p class="subtitle">Configured projects &mdash; '
+                    '<a href="/config" style="color:var(--accent)">edit in Config UI</a></p>'
+                    '<div class="card"><table><thead><tr>'
+                    "<th>Slug</th><th>Transport</th><th>Group ID</th><th>Notify Events</th>"
+                    f"</tr></thead><tbody>{rows}</tbody></table></div>"
+                    "</body></html>"
+                )
+                self._send_html(html)
+            else:
+                self._send_json({"ok": True, "data": result})
         except Exception as exc:
             self._send_json({"ok": False, "error": str(exc)}, 500)
 
     def _handle_status(self) -> None:
         try:
             result = core.status()
-            self._send_json({"ok": True, "data": result})
+            if self._wants_html():
+                rows = ""
+                for name, info in result.items():
+                    ok = info.get("ok", False)
+                    css = "green" if ok else "red"
+                    label = "Healthy" if ok else info.get("error", "Unhealthy")
+                    rows += (
+                        f'<tr><td><span class="dot {css}"></span>{name}</td>'
+                        f"<td>{label}</td></tr>"
+                    )
+                html = (
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                    "<title>whatsup — Status</title>"
+                    f"<style>{self._CSS}</style></head><body>"
+                    f"{self._NAV_HTML}"
+                    "<h1>Transport Status</h1>"
+                    '<p class="subtitle">Health check for each configured transport</p>'
+                    '<div class="card"><table><thead><tr>'
+                    "<th>Transport</th><th>Status</th>"
+                    f"</tr></thead><tbody>{rows}</tbody></table></div>"
+                    "</body></html>"
+                )
+                self._send_html(html)
+            else:
+                self._send_json({"ok": True, "data": result})
         except Exception as exc:
             self._send_json({"ok": False, "error": str(exc)}, 500)
 
