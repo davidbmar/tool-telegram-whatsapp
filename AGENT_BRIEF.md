@@ -1,49 +1,56 @@
-agentC-cli-mcp-skill — Sprint 1
+agentC-rest-server — Sprint 2
+
+Previous Sprint Summary
+─────────────────────────────────────────
+- Sprint 1 shipped: config.py, transport/telegram.py, core.py (re-exports only), messages.py (checkin, sprint-merged, test-failure formatters), cli.py, mcp_server.py, skills/whatsup.md
+- core.py currently has re-exports only — no send/notify/projects/status functions yet (MCP server inlines the logic)
+- messages.py has _FORMATTERS dict for event dispatch
+─────────────────────────────────────────
 
 Sprint-Level Context
 
 Goal
-- Build the core Python package with pluggable transport layer and Telegram as the first transport
-- Deliver CLI and MCP interfaces that can send messages to Telegram groups
-- Install a Claude skill for conversational use
+- Add REST API server on port 1202 for HTTP-based integrations
+- Add new event types: sprint-started, agent-completed
+- Add JSONL message history logging per project
+- Add .gitignore and clean up __pycache__ from repo
 
 Constraints
 - Python 3.11+, only dependencies are `requests` and `mcp`
-- Config lives at `~/.config/tool-telegram-whatsapp/config.json` — never commit credentials
-- All code goes in `whatsup/` package directory — do NOT create code outside this package (except cli.py and pyproject.toml at root)
-- Use sync `requests` for HTTP calls (no async in core)
-- Follow the Transport Protocol interface exactly: `send_message(group_id, text) -> dict`, `create_group(name, members) -> str`, `health_check() -> dict`
-- Agents run non-interactively — MUST NOT ask for confirmation or approval. Proceed directly to implementation.
-- Run `python -c "from whatsup import core; print('import ok')"` as a basic smoke test after implementation
+- Use stdlib `http.server` for the REST API (no FastAPI) to match Afterburner's pattern
+- REST server runs standalone on port 1202 — must include stale process cleanup and graceful shutdown
+- History logs go to `~/.config/tool-telegram-whatsapp/history/<slug>.jsonl`
+- All verification commands must use `python3` not `python`
+- Agents run non-interactively — MUST NOT ask for confirmation or approval
+- Existing imports must not break: `from whatsup import core`, `from whatsup.messages import format_event`
 
 
 Objective
-- Create the CLI entry point, MCP server, and Claude skill file
+- Create the REST API server on port 1202
 
 Tasks
-- Create `cli.py` (~50 lines) at repo root:
-  - Uses `argparse` with subcommands: `send`, `notify`, `projects`, `status`
-  - `send <slug> <message>` — calls `core.send(slug, messages.format_checkin(slug, message))`
-  - `notify <slug> <event>` with optional `--sprint`, `--status`, `--summary`, `--agent`, `--exit-code` flags — calls `core.notify(slug, event, **kwargs)`
-  - `projects` — calls `core.projects()`, prints as formatted table
-  - `status` — calls `core.status()`, prints transport health
-  - `main()` function as entry point, handles errors with sys.exit(1) and user-friendly messages
-- Create `whatsup/mcp_server.py` (~60 lines):
-  - Import `mcp` package and create server: `mcp = Server("tool-telegram-whatsapp")`
-  - Tool `send_checkin(slug: str, summary: str, details: str | None = None) -> str` — wraps core.send with messages.format_checkin
-  - Tool `send_notification(slug: str, event: str, sprint: int | None = None, status: str | None = None, summary: str | None = None) -> str` — wraps core.notify
-  - Tool `whatsup_projects() -> str` — wraps core.projects, returns JSON string
-  - Tool `whatsup_status() -> str` — wraps core.status, returns JSON string
-  - `if __name__ == "__main__"` or `def main()` that runs the MCP server via stdio
-- Create `skills/whatsup.md` in the repo (to be installed to `~/.claude/skills/`):
-  - Skill name: whatsup
-  - When user says `/whatsup <project> <message>` → call `send_checkin` MCP tool
-  - When user says `/whatsup status` → call `whatsup_status` MCP tool
-  - When user says `/whatsup projects` → call `whatsup_projects` MCP tool
-  - Include clear trigger description and usage examples
+- Create `whatsup/server.py` (~100 lines):
+  - Use `http.server.HTTPServer` with `ThreadingMixIn` (match Afterburner's dashboard pattern)
+  - Port 1202 (configurable via `--port` arg or `WHATSUP_PORT` env var)
+  - Stale process cleanup on startup: kill any existing process on the port before binding
+  - Graceful shutdown on SIGINT/SIGTERM
+  - Startup logging: print port and loaded config
+  - Endpoints:
+    - `POST /send` — body `{"slug": "...", "message": "..."}`, calls `core.send()`, returns JSON result
+    - `POST /notify` — body `{"slug": "...", "event": "...", "sprint": N, "status": "...", "summary": "...", "agent": "...", "exit_code": N}`, calls `core.notify()`, returns JSON result
+    - `GET /projects` — calls `core.projects()`, returns JSON list
+    - `GET /status` — calls `core.status()`, returns JSON dict
+    - `GET /history?slug=...&limit=20` — calls `history.get_history()`, returns JSON list
+  - Return `{"ok": true, "data": ...}` on success, `{"ok": false, "error": "..."}` on failure
+  - Handle missing/invalid JSON body with 400 response
+  - Handle unknown routes with 404
+  - `main()` function with argparse for `--port`
+- Update `cli.py` to add a `server` subcommand:
+  - `whatsup server` — starts the REST server (calls `whatsup.server.main()`)
+  - `whatsup server --port 1234` — custom port
 
 Acceptance Criteria
-- `python cli.py --help` prints usage with send, notify, projects, status subcommands
-- `python cli.py send --help` shows slug and message as required args
-- `from whatsup.mcp_server import mcp` imports without error (or equivalent server object)
-- `skills/whatsup.md` exists and contains skill definition with trigger, usage, and MCP tool mappings
+- `python3 -m whatsup.server --help` or `python3 whatsup/server.py --help` shows port option
+- `python3 -c "from whatsup.server import main; print('import ok')"` works
+- Server starts on port 1202, logs startup message, and responds to `GET /status` with JSON
+- `whatsup server` subcommand appears in `python3 cli.py --help`
