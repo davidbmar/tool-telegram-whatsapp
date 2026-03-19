@@ -38,10 +38,44 @@ def format_test_failure(
     )
 
 
+def format_sprint_started(
+    slug: str,
+    sprint: int,
+    goal: str = "",
+    agents: str = "",
+    phases: int = 1,
+) -> str:
+    """Format a sprint-started notification."""
+    return (
+        f"Sprint {sprint} started — {slug}\n\n"
+        f"Goal: {goal}\n"
+        f"Agents: {agents}\n"
+        f"Phases: {phases}"
+    )
+
+
+def format_agent_completed(
+    slug: str,
+    sprint: int,
+    agent: str,
+    duration: str = "",
+    commits: int = 0,
+    remaining: int = 0,
+) -> str:
+    """Format an agent-completed notification."""
+    return (
+        f"Agent {agent} completed — {slug} Sprint {sprint}\n\n"
+        f"{duration} · {commits} commits\n"
+        f"{remaining} agents remaining"
+    )
+
+
 _FORMATTERS: dict[str, callable] = {
     "checkin": format_checkin,
     "sprint-merged": format_sprint_merged,
     "test-failure": format_test_failure,
+    "sprint-started": format_sprint_started,
+    "agent-completed": format_agent_completed,
 }
 
 

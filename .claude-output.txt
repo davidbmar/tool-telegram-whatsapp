@@ -1,21 +1,17 @@
-Done. Here's the summary:
+All done. Here's the summary:
 
 ## Files changed
-- `.gitignore` — added Python bytecode, packaging, venv, testing, and IDE ignores
-- `docs/project-memory/sessions/S-2026-03-19-0406-gitignore-cleanup.md` — session doc
-- 10 `.pyc` files removed from git tracking (in `whatsup/__pycache__/` and `whatsup/transport/__pycache__/`)
+- **`whatsup/messages.py`** — added `format_sprint_started`, `format_agent_completed`, registered both in `_FORMATTERS`
+- **`whatsup/core.py`** — rewritten with `send()`, `notify()`, `projects()`, `status()`, `_get_transport()` helper; backward-compat re-exports preserved
+- **`whatsup/history.py`** — new file with `log_message()` (JSONL append to `~/.config/tool-telegram-whatsapp/history/{slug}.jsonl`) and `get_history()` (tail N entries)
+- **`docs/project-memory/sessions/S-2026-03-19-0408-sprint2-events-history.md`** — session doc
 
 ## Commands run
-- `git rm -r --cached whatsup/__pycache__/ whatsup/transport/__pycache__/`
-- `git ls-files | grep __pycache__` → empty (verified)
-- `python3 -c "from whatsup import core; print('ok')"` → `ok` (verified)
-- `git push -u origin HEAD`
-
-## Acceptance criteria
-- `.gitignore` exists at repo root with all required patterns
-- `git ls-files | grep __pycache__` returns nothing
-- `python3 -c "from whatsup import core; print('ok')"` passes
+- `git pull origin main` — already up to date
+- `python3 -c "..."` — verified all 5 acceptance criteria pass
+- `git commit` + `git push -u origin HEAD`
 
 ## Notes / follow-on work
-- The `.pyc` files still exist on disk (as expected) — they're just no longer tracked by git
-- The `.gitignore` preserves the existing sprint, terraform, and node ignores that were already present
+- **No test suite exists** — a future sprint should add unit tests for messages, core, and history modules
+- **REST API server** (port 1202) and **`.gitignore` cleanup** are scoped to other agents in this sprint
+- `notify()` checks the project's `notify` list and returns `{"skipped": True, ...}` for events not enabled — MCP tools now work end-to-end
