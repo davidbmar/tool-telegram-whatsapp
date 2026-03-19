@@ -65,6 +65,8 @@ class _Handler(BaseHTTPRequestHandler):
         elif path == "/history":
             params = parse_qs(parsed.query)
             self._handle_history(params)
+        elif path == "/schema":
+            self._handle_schema()
         else:
             self._send_json({"ok": False, "error": "Not found"}, 404)
 
@@ -129,6 +131,60 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "data": result})
         except Exception as exc:
             self._send_json({"ok": False, "error": str(exc)}, 500)
+
+    def _handle_schema(self) -> None:
+        from whatsup import __version__
+        schema = {
+            "tool": "tool-telegram-whatsapp",
+            "version": __version__,
+            "description": "Per-project group-chat messaging via Telegram/WhatsApp",
+            "globalConfig": {
+                "type": "object",
+                "properties": {
+                    "telegram": {
+                        "type": "object",
+                        "properties": {
+                            "botToken": {
+                                "type": "string",
+                                "description": "Telegram Bot API token",
+                                "sensitive": True,
+                            }
+                        },
+                    },
+                    "console": {"type": "object", "properties": {}},
+                },
+            },
+            "projectConfig": {
+                "type": "object",
+                "properties": {
+                    "transport": {
+                        "type": "string",
+                        "enum": ["telegram", "console", "whatsapp"],
+                        "default": "console",
+                    },
+                    "groupId": {
+                        "type": "string",
+                        "description": "Chat group ID",
+                    },
+                    "notify": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "sprint-started",
+                                "agent-completed",
+                                "sprint-merged",
+                                "test-failure",
+                                "checkin",
+                            ],
+                        },
+                        "default": ["sprint-merged", "test-failure"],
+                    },
+                },
+                "required": ["groupId"],
+            },
+        }
+        self._send_json(schema)
 
     def _handle_history(self, params: dict) -> None:
         slug_list = params.get("slug", [])

@@ -67,3 +67,15 @@ def test_cli_status(cli_env):
     result = _run_cli("status", env_extra=cli_env)
     assert result.returncode == 0
     assert "console" in result.stdout
+
+
+def test_cli_install_skill(tmp_path):
+    """install-skill copies whatsup.md to ~/.claude/skills/."""
+    fake_home = tmp_path / "fakehome"
+    fake_home.mkdir()
+    result = _run_cli("install-skill", env_extra={"HOME": str(fake_home)})
+    assert result.returncode == 0
+    assert "Skill installed" in result.stdout
+    dest = fake_home / ".claude" / "skills" / "whatsup.md"
+    assert dest.exists()
+    assert dest.read_text(encoding="utf-8").strip() != ""

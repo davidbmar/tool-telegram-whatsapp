@@ -41,6 +41,9 @@ def main():
     # init
     sub.add_parser("init", help="Create sample config for console transport")
 
+    # install-skill
+    sub.add_parser("install-skill", help="Install the whatsup Claude skill")
+
     # server
     p_server = sub.add_parser("server", help="Start the REST API server")
     p_server.add_argument("--port", type=int, default=None, help="Port (default: 1202)")
@@ -120,6 +123,18 @@ def main():
                 print(f"{transport_name}: {tag}")
                 if not ok and "error" in info:
                     print(f"  error: {info['error']}")
+
+        elif args.command == "install-skill":
+            skill_src = Path(__file__).resolve().parent / "skills" / "whatsup.md"
+            if not skill_src.exists():
+                print(f"Error: skill file not found at {skill_src}", file=sys.stderr)
+                sys.exit(1)
+            dest_dir = Path.home() / ".claude" / "skills"
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest = dest_dir / "whatsup.md"
+            import shutil
+            shutil.copy2(skill_src, dest)
+            print(f"Skill installed to {dest}")
 
         elif args.command == "server":
             from whatsup.server import main as server_main
