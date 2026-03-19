@@ -241,7 +241,22 @@ class WhatsupHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self._send_json({"ok": False, "error": str(exc)}, 500)
 
+    def _check_config_token(self) -> bool:
+        """Return True if the request carries a valid token (or no token is required)."""
+        expected = os.environ.get("WHATSUP_API_TOKEN", "")
+        if not expected:
+            return True  # no token configured — allow all
+        token = self.headers.get("X-Whatsup-Token", "")
+        if not token:
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            token = (params.get("token") or [""])[0]
+        return token == expected
+
     def _handle_config_save(self, body: dict) -> None:
+        if not self._check_config_token():
+            self._send_json({"ok": False, "error": "Forbidden — invalid or missing token"}, 403)
+            return
         try:
             from whatsup.config import CONFIG_PATH
             CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)

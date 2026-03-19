@@ -287,6 +287,46 @@ Install the skill by copying `skills/whatsup.md` to your Claude skills directory
 cp skills/whatsup.md ~/.claude/skills/
 ```
 
+## Security
+
+The server binds to **127.0.0.1** by default — it is not accessible from the network.
+
+### Config write protection
+
+Set `WHATSUP_API_TOKEN` to require a token on `POST /api/config`:
+
+```bash
+export WHATSUP_API_TOKEN=mysecret
+whatsup server
+```
+
+Requests must then include the token via header or query parameter:
+
+```bash
+# Header
+curl -X POST http://localhost:1202/api/config \
+  -H "Content-Type: application/json" \
+  -H "X-Whatsup-Token: mysecret" \
+  -d '{ ... }'
+
+# Query parameter
+curl -X POST "http://localhost:1202/api/config?token=mysecret" \
+  -H "Content-Type: application/json" \
+  -d '{ ... }'
+```
+
+If `WHATSUP_API_TOKEN` is not set (the default), no token is required — localhost-only access is considered acceptable.
+
+### Remote access
+
+Set `WHATSUP_BIND=0.0.0.0` only if you need remote access (**not recommended**). If you do, always set `WHATSUP_API_TOKEN` as well:
+
+```bash
+export WHATSUP_BIND=0.0.0.0
+export WHATSUP_API_TOKEN=mysecret
+whatsup server
+```
+
 ## Transports
 
 | Transport | Status | Use case |
