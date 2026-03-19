@@ -1,74 +1,47 @@
-agentB-schema-skill — Sprint 4
+agentB-config-polish — Sprint 5
 
 Previous Sprint Summary
 ─────────────────────────────────────────
-- Sprint 3 shipped: console transport, whatsup init, 27 pytest tests, comprehensive README
-- Open bugs: B-001 (MCP import), B-004 (__main__.py), B-005 (skill typo), B-006 (README URL)
-- Open features: F-003 (install-skill), F-005 (schema endpoint), F-006 (register), F-008 (tool_config), F-010 (__main__)
+- Sprint 4 shipped: bugfixes, /schema endpoint, install-skill
+- Security hotfix: server now binds to 127.0.0.1
+- Open: B-008 (HTML views), B-009 (config auth), F-013 (auto-collapse), F-014 (HTML views)
 ─────────────────────────────────────────
 
 Sprint-Level Context
 
 Goal
-- Fix all remaining bugs (MCP import, __main__.py, skill typo, README URL)
-- Add /schema endpoint for tool plugin system integration
-- Add `whatsup install-skill` command
-- Polish for production readiness
+- Add HTML views for /status and /projects endpoints when accessed from a browser
+- Add setup guide auto-collapse when Telegram is already connected
+- Improve security of /api/config endpoint
 
 Constraints
 - Python 3.11+, use `python3` in all commands
-- MCP import must be optional — tool should work without `mcp` package installed (graceful degradation)
-- `__main__.py` should allow `python3 -m whatsup` to show help and `python3 -m whatsup.server` to start server
-- Tests must still pass: `.venv/bin/python -m pytest tests/ -v`
+- HTML views should be served when Accept header includes text/html, JSON otherwise
+- Keep the dark theme consistent with config UI
 - Agents run non-interactively — MUST NOT ask for confirmation or approval
 
 
 Objective
-- Add GET /schema endpoint to REST server and `whatsup install-skill` CLI command
+- Auto-collapse setup guide when Telegram is connected, and add basic config endpoint protection
 
 Tasks
-- Add `GET /schema` endpoint to `whatsup/server.py`:
-  - Returns JSON Schema describing the tool's per-project config:
-    ```json
-    {
-      "tool": "tool-telegram-whatsapp",
-      "version": "0.1.0",
-      "description": "Per-project group-chat messaging via Telegram/WhatsApp",
-      "globalConfig": {
-        "type": "object",
-        "properties": {
-          "telegram": {
-            "type": "object",
-            "properties": {
-              "botToken": {"type": "string", "description": "Telegram Bot API token", "sensitive": true}
-            }
-          },
-          "console": {"type": "object", "properties": {}}
-        }
-      },
-      "projectConfig": {
-        "type": "object",
-        "properties": {
-          "transport": {"type": "string", "enum": ["telegram", "console", "whatsapp"], "default": "console"},
-          "groupId": {"type": "string", "description": "Chat group ID"},
-          "notify": {
-            "type": "array",
-            "items": {"type": "string", "enum": ["sprint-started", "agent-completed", "sprint-merged", "test-failure", "checkin"]},
-            "default": ["sprint-merged", "test-failure"]
-          }
-        },
-        "required": ["groupId"]
-      }
-    }
-    ```
-  - This is the schema that Afterburner's dashboard will read to render config forms (F-017 in Afterburner backlog)
-- Add `install-skill` subcommand to `cli.py`:
-  - `whatsup install-skill` — copies `skills/whatsup.md` to `~/.claude/skills/whatsup.md`
-  - If file already exists, show diff and ask... no wait, non-interactive. Just overwrite and print "Skill installed to ~/.claude/skills/whatsup.md"
-  - Create `~/.claude/skills/` directory if it doesn't exist
-- Add test for `/schema` endpoint in `tests/test_cli.py` or new `tests/test_server.py`
+- Modify `whatsup/config_ui.html`:
+  - In the `load()` function, after fetching config, check if any project has `transport: "telegram"` with a non-empty `groupId`
+  - If yes: auto-collapse the setup guide (set `guide-body` display to `none`)
+  - If no: keep it expanded (user hasn't set up Telegram yet)
+  - Add a small "Show setup guide" link that re-expands it
+- Modify `whatsup/server.py` — add basic protection to `/api/config`:
+  - Add `_handle_config_save`: check for a `X-Whatsup-Token` header or a `token` query parameter
+  - The token is read from an env var `WHATSUP_API_TOKEN` — if set, all POST /api/config requests must include it
+  - If `WHATSUP_API_TOKEN` is not set (default), no auth required (localhost-only is acceptable)
+  - This prevents accidental writes from browser extensions or scripts without breaking the default experience
+- Update README.md — add a "Security" section:
+  - Server binds to 127.0.0.1 by default (not accessible from network)
+  - Set `WHATSUP_API_TOKEN=mysecret` for config write protection
+  - Set `WHATSUP_BIND=0.0.0.0` only if you need remote access (not recommended)
 
 Acceptance Criteria
-- `curl http://localhost:1202/schema` returns valid JSON with `tool`, `globalConfig`, `projectConfig` fields
-- `python3 cli.py install-skill` copies skill file to `~/.claude/skills/whatsup.md`
-- Schema `projectConfig` has `transport`, `groupId`, `notify` properties
+- Config UI auto-collapses setup guide when Telegram is configured
+- "Show setup guide" link re-expands it
+- When `WHATSUP_API_TOKEN` is set, POST /api/config without the token returns 403
+- README has a Security section
