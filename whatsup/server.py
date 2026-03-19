@@ -18,6 +18,7 @@ from whatsup import core
 log = logging.getLogger("whatsup.server")
 
 DEFAULT_PORT = 1202
+_CONFIG_PAGE_PATH = os.path.join(os.path.dirname(__file__), "config_ui.html")
 
 
 # ------------------------------------------------------------------
@@ -52,6 +53,14 @@ class WhatsupHandler(BaseHTTPRequestHandler):
         except (json.JSONDecodeError, ValueError):
             return None
 
+    def _send_html(self, html: str, status: int = 200) -> None:
+        body = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     # --- GET routes -------------------------------------------------
 
     def do_GET(self) -> None:  # noqa: N802
@@ -67,6 +76,12 @@ class WhatsupHandler(BaseHTTPRequestHandler):
             self._handle_history(params)
         elif path == "/schema":
             self._handle_schema()
+        elif path == "/config":
+            self._handle_config_page()
+        elif path == "/api/config":
+            self._handle_config_get()
+        elif path == "":
+            self._handle_index()
         else:
             self._send_json({"ok": False, "error": "Not found"}, 404)
 
@@ -85,6 +100,8 @@ class WhatsupHandler(BaseHTTPRequestHandler):
             self._handle_send(body)
         elif path == "/notify":
             self._handle_notify(body)
+        elif path == "/api/config":
+            self._handle_config_save(body)
         else:
             self._send_json({"ok": False, "error": "Not found"}, 404)
 
@@ -185,6 +202,58 @@ class WhatsupHandler(BaseHTTPRequestHandler):
             },
         }
         self._send_json(schema)
+
+    def _handle_index(self) -> None:
+        self._send_html("""<!DOCTYPE html><html><head><meta charset="utf-8">
+        <title>whatsup</title></head><body style="font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px;">
+        <h1>whatsup</h1><p>Per-project group-chat messaging tool.</p>
+        <ul><li><a href="/config">Configuration UI</a></li>
+        <li><a href="/status">Transport Status (JSON)</a></li>
+        <li><a href="/projects">Projects (JSON)</a></li>
+        <li><a href="/schema">Config Schema (JSON)</a></li></ul></body></html>""")
+
+    def _handle_config_get(self) -> None:
+        try:
+            from whatsup.config import CONFIG_PATH
+            if CONFIG_PATH.exists():
+                config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+                # Mask sensitive fields
+                for t_name, t_cfg in config.get("transports", {}).items():
+                    if "botToken" in t_cfg and len(t_cfg["botToken"]) > 10:
+                        t_cfg["botToken"] = t_cfg["botToken"][:8] + "..."
+                    if "accessToken" in t_cfg and len(t_cfg["accessToken"]) > 10:
+                        t_cfg["accessToken"] = t_cfg["accessToken"][:8] + "..."
+                self._send_json({"ok": True, "data": config, "path": str(CONFIG_PATH)})
+            else:
+                self._send_json({"ok": False, "error": "No config file", "path": str(CONFIG_PATH)})
+        except Exception as exc:
+            self._send_json({"ok": False, "error": str(exc)}, 500)
+
+    def _handle_config_save(self, body: dict) -> None:
+        try:
+            from whatsup.config import CONFIG_PATH
+            CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            # Merge: if existing config has full tokens, preserve them when masked
+            if CONFIG_PATH.exists():
+                existing = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+                for t_name, t_cfg in body.get("transports", {}).items():
+                    if "botToken" in t_cfg and t_cfg["botToken"].endswith("..."):
+                        old_token = existing.get("transports", {}).get(t_name, {}).get("botToken", "")
+                        t_cfg["botToken"] = old_token
+                    if "accessToken" in t_cfg and t_cfg["accessToken"].endswith("..."):
+                        old_token = existing.get("transports", {}).get(t_name, {}).get("accessToken", "")
+                        t_cfg["accessToken"] = old_token
+            CONFIG_PATH.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")
+            self._send_json({"ok": True, "message": "Config saved"})
+        except Exception as exc:
+            self._send_json({"ok": False, "error": str(exc)}, 500)
+
+    def _handle_config_page(self) -> None:
+        try:
+            with open(_CONFIG_PAGE_PATH, encoding="utf-8") as f:
+                self._send_html(f.read())
+        except FileNotFoundError:
+            self._send_html("<h1>Config UI not found</h1><p>Missing config_ui.html</p>", 500)
 
     def _handle_history(self, params: dict) -> None:
         slug_list = params.get("slug", [])

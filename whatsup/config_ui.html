@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>whatsup — Configuration</title>
+<style>
+  :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3;
+    --text2: #8b949e; --accent: #58a6ff; --green: #3fb950; --red: #f85149;
+    --font: system-ui, -apple-system, sans-serif;
+    --mono: 'SF Mono', Consolas, monospace; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text);
+    max-width: 800px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .subtitle { color: var(--text2); margin-bottom: 24px; font-size: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: var(--accent); }
+  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+  input, select { width: 100%; padding: 8px 12px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font-family: var(--mono); font-size: 13px; margin-bottom: 12px; }
+  input:focus, select:focus { border-color: var(--accent); outline: none; }
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .checkbox-group label { display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text); cursor: pointer;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; }
+  .checkbox-group input[type=checkbox] { width: auto; margin: 0; }
+  .checkbox-group label.checked { border-color: var(--green); background: #3fb95015; }
+  button { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border);
+    cursor: pointer; font-size: 13px; font-family: var(--font); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-danger { background: transparent; color: var(--red); border-color: var(--red); }
+  .btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-secondary { background: transparent; color: var(--text2); }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .status { padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; display: none; }
+  .status.ok { display: block; background: #3fb95020; color: var(--green); border: 1px solid #3fb95040; }
+  .status.err { display: block; background: #f8514920; color: var(--red); border: 1px solid #f8514940; }
+  .project { border: 1px solid var(--border); border-radius: 6px; padding: 16px;
+    margin-bottom: 12px; background: var(--bg); }
+  .project-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .project-slug { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .nav { display: flex; gap: 16px; margin-bottom: 24px; font-size: 14px; }
+  .nav a { color: var(--text2); text-decoration: none; }
+  .nav a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>whatsup</h1>
+<p class="subtitle">Configuration — manage transports and projects</p>
+<nav class="nav">
+  <a href="/">Home</a>
+  <a href="/status">Status</a>
+  <a href="/projects">Projects</a>
+  <a href="/schema">Schema</a>
+</nav>
+
+<div id="app"></div>
+
+<script>
+"use strict";
+var EVENTS = ['sprint-started','agent-completed','sprint-merged','test-failure','checkin'];
+var config = null;
+var configPath = '';
+
+function el(tag, attrs, children) {
+  var e = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function(k) {
+    if (k === 'className') e.className = attrs[k];
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  });
+  if (children) {
+    if (typeof children === 'string') e.textContent = children;
+    else if (Array.isArray(children)) children.forEach(function(c) { if (c) e.appendChild(c); });
+    else e.appendChild(children);
+  }
+  return e;
+}
+
+function load() {
+  fetch('/api/config').then(function(r){return r.json()}).then(function(d) {
+    if (d.ok) { config = d.data; configPath = d.path; render(); }
+    else {
+      var app = document.getElementById('app');
+      app.textContent = '';
+      var card = el('div', {className:'card'}, [
+        el('h2', null, 'No config found'),
+        el('p', null, 'Run "whatsup init" to create one, or click below.'),
+        el('br'),
+        el('button', {className:'btn-primary', onClick: initConfig}, 'Create Default Config')
+      ]);
+      app.appendChild(card);
+    }
+  }).catch(function(e) {
+    document.getElementById('app').textContent = 'Error: ' + e;
+  });
+}
+
+function render() {
+  var app = document.getElementById('app');
+  app.textContent = '';
+  var projects = config.projects || [];
+  var transports = config.transports || {};
+
+  // Transports card
+  var tCard = el('div', {className:'card'}, [
+    el('h2', null, 'Transports'),
+    el('div', {className:'row'}, [
+      el('div', null, [
+        el('label', null, 'Telegram Bot Token'),
+        el('input', {id:'tg-token', type:'password', placeholder:'123456:ABC-DEF...', value: (transports.telegram && transports.telegram.botToken) || ''})
+      ]),
+      el('div', null, [
+        el('label', null, 'Console'),
+        el('input', {disabled:'true', value:'No credentials needed', style:'color:var(--text2)'})
+      ])
+    ])
+  ]);
+  app.appendChild(tCard);
+
+  // Projects card
+  var pCard = el('div', {className:'card'});
+  pCard.appendChild(el('h2', null, 'Projects'));
+
+  projects.forEach(function(p, i) {
+    var proj = el('div', {className:'project'});
+
+    var header = el('div', {className:'project-header'});
+    header.appendChild(el('span', {className:'project-slug'}, p.slug));
+    var rmBtn = el('button', {className:'btn-danger', onClick: function(){removeProject(i)}}, 'Remove');
+    header.appendChild(rmBtn);
+    proj.appendChild(header);
+
+    var row = el('div', {className:'row'});
+    // Transport select
+    var tDiv = el('div');
+    tDiv.appendChild(el('label', null, 'Transport'));
+    var sel = el('select', {id:'proj-transport-'+i});
+    ['console','telegram','whatsapp'].forEach(function(t) {
+      var opt = el('option', {value:t}, t);
+      if (p.transport === t) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    tDiv.appendChild(sel);
+    row.appendChild(tDiv);
+    // Group ID
+    var gDiv = el('div');
+    gDiv.appendChild(el('label', null, 'Group ID'));
+    gDiv.appendChild(el('input', {id:'proj-group-'+i, value: p.groupId||'', placeholder:'e.g. -1001234567890'}));
+    row.appendChild(gDiv);
+    proj.appendChild(row);
+
+    // Notify events
+    proj.appendChild(el('label', null, 'Notify Events'));
+    var cbGroup = el('div', {className:'checkbox-group'});
+    EVENTS.forEach(function(ev) {
+      var checked = (p.notify||[]).indexOf(ev) >= 0;
+      var lbl = el('label', {className: checked ? 'checked' : ''});
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = checked;
+      cb.dataset.proj = i;
+      cb.dataset.event = ev;
+      cb.addEventListener('change', function() { this.parentElement.classList.toggle('checked', this.checked); });
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + ev));
+      cbGroup.appendChild(lbl);
+    });
+    proj.appendChild(cbGroup);
+    pCard.appendChild(proj);
+  });
+
+  pCard.appendChild(el('button', {className:'btn-secondary', onClick: addProject}, '+ Add Project'));
+  app.appendChild(pCard);
+
+  // Actions
+  var actions = el('div', {className:'actions'});
+  actions.appendChild(el('button', {className:'btn-primary', onClick: save}, 'Save Configuration'));
+  actions.appendChild(el('button', {className:'btn-success', onClick: testSend}, 'Send Test Message'));
+  app.appendChild(actions);
+
+  app.appendChild(el('div', {id:'status', className:'status'}));
+
+  var pathNote = el('p', {style:'margin-top:16px;font-size:12px;color:var(--text2)'});
+  pathNote.textContent = 'Config file: ' + configPath;
+  app.appendChild(pathNote);
+}
+
+function gatherConfig() {
+  var projects = config.projects || [];
+  var gathered = { transports: JSON.parse(JSON.stringify(config.transports || {})), projects: [] };
+  var tgToken = document.getElementById('tg-token');
+  if (tgToken) {
+    if (!gathered.transports.telegram) gathered.transports.telegram = {};
+    gathered.transports.telegram.botToken = tgToken.value;
+  }
+  if (!gathered.transports.console) gathered.transports.console = {};
+  projects.forEach(function(p, i) {
+    var transport = document.getElementById('proj-transport-'+i);
+    var groupId = document.getElementById('proj-group-'+i);
+    var notify = [];
+    document.querySelectorAll('input[data-proj="'+i+'"]').forEach(function(cb) {
+      if (cb.checked) notify.push(cb.dataset.event);
+    });
+    gathered.projects.push({
+      slug: p.slug,
+      transport: transport ? transport.value : p.transport,
+      groupId: groupId ? groupId.value : p.groupId,
+      notify: notify
+    });
+  });
+  return gathered;
+}
+
+function showStatus(ok, msg) {
+  var el = document.getElementById('status');
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+}
+
+function save() {
+  var data = gatherConfig();
+  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
+    .then(function(r){return r.json()})
+    .then(function(d) {
+      if (d.ok) { showStatus(true, 'Configuration saved.'); config = data; }
+      else showStatus(false, 'Error: ' + d.error);
+    })
+    .catch(function(e) { showStatus(false, 'Error: ' + e); });
+}
+
+function testSend() {
+  var slug = (config.projects||[])[0];
+  if (!slug) { alert('No projects configured'); return; }
+  slug = slug.slug;
+  fetch('/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({slug:slug, message:'Test message from config UI'}) })
+    .then(function(r){return r.json()})
+    .then(function(d) {
+      if (d.ok) showStatus(true, 'Test message sent to ' + slug + '!');
+      else showStatus(false, 'Error: ' + d.error);
+    })
+    .catch(function(e) { showStatus(false, 'Error: ' + e); });
+}
+
+function addProject() {
+  var slug = prompt('Project slug (e.g. my-project):');
+  if (!slug) return;
+  config.projects = config.projects || [];
+  config.projects.push({ slug:slug, transport:'console', groupId:'', notify:['sprint-merged','test-failure'] });
+  render();
+}
+
+function removeProject(i) {
+  if (!confirm('Remove project "'+config.projects[i].slug+'"?')) return;
+  config.projects.splice(i, 1);
+  render();
+}
+
+function initConfig() {
+  var data = {
+    transports: { console: {}, telegram: { botToken: '' } },
+    projects: [{ slug:'demo', transport:'console', groupId:'demo-group', notify:['sprint-merged','test-failure','checkin','sprint-started','agent-completed'] }]
+  };
+  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
+    .then(function(r){return r.json()})
+    .then(function(d) { if (d.ok) { config = data; configPath = d.path || ''; render(); } })
+    .catch(function(e) { alert('Error: ' + e); });
+}
+
+load();
+</script>
+</body>
+</html>
