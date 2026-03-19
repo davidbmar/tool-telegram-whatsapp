@@ -17,7 +17,8 @@ Per-project group-chat messaging for [Afterburner](https://github.com/anthropics
 git clone https://github.com/davidbmar/tool-telegram-whatsapp.git
 cd tool-telegram-whatsapp
 
-# 2. Install
+# 2. Install (use a venv to avoid system package conflicts)
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
 # 3. Generate sample config (uses console transport — no credentials needed)
