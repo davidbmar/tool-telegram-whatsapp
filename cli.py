@@ -36,6 +36,10 @@ def main():
     # status
     sub.add_parser("status", help="Check transport health")
 
+    # server
+    p_server = sub.add_parser("server", help="Start the REST API server")
+    p_server.add_argument("--port", type=int, default=None, help="Port (default: 1202)")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -81,6 +85,13 @@ def main():
                 print(f"{transport_name}: {tag}")
                 if not ok and "error" in info:
                     print(f"  error: {info['error']}")
+
+        elif args.command == "server":
+            from whatsup.server import main as server_main
+            argv = []
+            if args.port is not None:
+                argv.extend(["--port", str(args.port)])
+            server_main(argv)
 
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
