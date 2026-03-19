@@ -1,56 +1,69 @@
-agentC-rest-server — Sprint 2
+agentA-console-transport-init — Sprint 3
 
 Previous Sprint Summary
 ─────────────────────────────────────────
-- Sprint 1 shipped: config.py, transport/telegram.py, core.py (re-exports only), messages.py (checkin, sprint-merged, test-failure formatters), cli.py, mcp_server.py, skills/whatsup.md
-- core.py currently has re-exports only — no send/notify/projects/status functions yet (MCP server inlines the logic)
-- messages.py has _FORMATTERS dict for event dispatch
+- Sprint 2 shipped: REST API server on :1202, sprint-started + agent-completed formatters, real core.py business logic, JSONL history, .gitignore
+- Known issues: MCP server can't import (`mcp` package not in system Python), no test suite, no sample config, README is scaffolding only
 ─────────────────────────────────────────
 
 Sprint-Level Context
 
 Goal
-- Add REST API server on port 1202 for HTTP-based integrations
-- Add new event types: sprint-started, agent-completed
-- Add JSONL message history logging per project
-- Add .gitignore and clean up __pycache__ from repo
+- Add comprehensive test suite so the tool is independently testable
+- Fix MCP server dependency and make all interfaces work out of the box
+- Add `whatsup init` command to generate sample config
+- Add console transport for testing without Telegram credentials
+- Write proper README.md with installation, quickstart, and API docs
 
 Constraints
-- Python 3.11+, only dependencies are `requests` and `mcp`
-- Use stdlib `http.server` for the REST API (no FastAPI) to match Afterburner's pattern
-- REST server runs standalone on port 1202 — must include stale process cleanup and graceful shutdown
-- History logs go to `~/.config/tool-telegram-whatsapp/history/<slug>.jsonl`
-- All verification commands must use `python3` not `python`
+- Python 3.11+, use `python3` in all commands
+- Tests use pytest — add `pytest` to dev dependencies in pyproject.toml
+- Console transport prints to stdout instead of calling Telegram API — useful for testing and demos
+- `whatsup init` creates `~/.config/tool-telegram-whatsapp/config.json` with a sample config using console transport
+- README must be GitHub-ready with badges, installation, quickstart, config reference, and interface docs
 - Agents run non-interactively — MUST NOT ask for confirmation or approval
-- Existing imports must not break: `from whatsup import core`, `from whatsup.messages import format_event`
+- Existing imports must not break
 
 
 Objective
-- Create the REST API server on port 1202
+- Add a console transport for testing without credentials and a `whatsup init` command to generate sample config
 
 Tasks
-- Create `whatsup/server.py` (~100 lines):
-  - Use `http.server.HTTPServer` with `ThreadingMixIn` (match Afterburner's dashboard pattern)
-  - Port 1202 (configurable via `--port` arg or `WHATSUP_PORT` env var)
-  - Stale process cleanup on startup: kill any existing process on the port before binding
-  - Graceful shutdown on SIGINT/SIGTERM
-  - Startup logging: print port and loaded config
-  - Endpoints:
-    - `POST /send` — body `{"slug": "...", "message": "..."}`, calls `core.send()`, returns JSON result
-    - `POST /notify` — body `{"slug": "...", "event": "...", "sprint": N, "status": "...", "summary": "...", "agent": "...", "exit_code": N}`, calls `core.notify()`, returns JSON result
-    - `GET /projects` — calls `core.projects()`, returns JSON list
-    - `GET /status` — calls `core.status()`, returns JSON dict
-    - `GET /history?slug=...&limit=20` — calls `history.get_history()`, returns JSON list
-  - Return `{"ok": true, "data": ...}` on success, `{"ok": false, "error": "..."}` on failure
-  - Handle missing/invalid JSON body with 400 response
-  - Handle unknown routes with 404
-  - `main()` function with argparse for `--port`
-- Update `cli.py` to add a `server` subcommand:
-  - `whatsup server` — starts the REST server (calls `whatsup.server.main()`)
-  - `whatsup server --port 1234` — custom port
+- Create `whatsup/transport/console.py` (~30 lines):
+  - Class `ConsoleTransport` implementing the Transport protocol
+  - `send_message(group_id, text)` — prints `"[whatsup → {group_id}] {text}"` to stdout, returns `{"ok": True, "transport": "console"}`
+  - `create_group(name, members)` — prints creation message, returns `"console-group-{name}"`
+  - `health_check()` — returns `{"ok": True, "transport": "console", "mode": "local"}`
+- Update `whatsup/core.py`:
+  - In `_get_transport()`, add `"console"` case that returns `ConsoleTransport()`
+- Add `init` subcommand to `cli.py`:
+  - `whatsup init` — creates `~/.config/tool-telegram-whatsapp/config.json` if it doesn't exist
+  - Sample config uses `"console"` transport so it works immediately without credentials:
+    ```json
+    {
+      "transports": {
+        "console": {},
+        "telegram": {"botToken": "YOUR_BOT_TOKEN_HERE"}
+      },
+      "projects": {
+        "demo": {
+          "transport": "console",
+          "groupId": "demo-group",
+          "notify": ["sprint-merged", "test-failure", "checkin", "sprint-started", "agent-completed"]
+        }
+      }
+    }
+    ```
+  - If config already exists, print "Config already exists at ..." and exit without overwriting
+  - After creating, print "Config created. Test with: whatsup send demo 'Hello world'"
+- Update `pyproject.toml`:
+  - Add `pytest` to `[project.optional-dependencies]` dev group: `dev = ["pytest"]`
+  - Ensure `mcp` is listed in main dependencies (it should already be there)
 
 Acceptance Criteria
-- `python3 -m whatsup.server --help` or `python3 whatsup/server.py --help` shows port option
-- `python3 -c "from whatsup.server import main; print('import ok')"` works
-- Server starts on port 1202, logs startup message, and responds to `GET /status` with JSON
-- `whatsup server` subcommand appears in `python3 cli.py --help`
+- `from whatsup.transport.console import ConsoleTransport` imports without error
+- `ConsoleTransport().send_message("test", "hello")` prints to stdout and returns dict
+- `python3 cli.py init` creates config file at expected path
+- After init, `python3 cli.py send demo "Hello world"` works (prints to console, no Telegram needed)
+- After init, `python3 cli.py projects` shows the demo project
+- After init, `python3 cli.py status` shows console transport healthy

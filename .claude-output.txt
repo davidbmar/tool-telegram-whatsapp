@@ -1,1 +1,21 @@
-The background server test completed successfully — output was already reviewed earlier and all endpoints returned correct JSON responses. Work is complete and pushed.
+Done. Here's the summary:
+
+## Files changed
+| File | Change |
+|------|--------|
+| `whatsup/transport/console.py` | **Created** — `ConsoleTransport` class (~18 lines) |
+| `whatsup/core.py` | Added `ConsoleTransport` import + `"console"` case in `_get_transport()` |
+| `cli.py` | Added `init` subcommand with sample config generation |
+| `pyproject.toml` | Added `[project.optional-dependencies] dev = ["pytest"]` |
+| `docs/project-memory/sessions/S-2026-03-19-0433-console-transport-init.md` | Session doc |
+
+## Commands run
+- `python3 -c "from whatsup.transport.console import ConsoleTransport"` — import OK
+- `python3 cli.py init` — creates config, second run detects existing config
+- `python3 cli.py send demo "Hello world"` — prints to console via ConsoleTransport
+- `python3 cli.py projects` — shows demo project with console transport
+- `python3 cli.py status` — shows `console: OK`
+
+## Notes / follow-on work
+- **Config format decision**: The brief showed `projects` as a dict, but existing `config.py` expects a list with `slug` fields. Used the list format to avoid breaking existing code. If a future task wants the dict format, `config.py` would need updating.
+- The test config was created at `~/.config/tool-telegram-whatsapp/config.json` during acceptance testing — this may need cleanup if other agents also create configs there.
