@@ -1,25 +1,17 @@
-Done. All acceptance criteria pass, branch pushed.
-
----
+All done. Here's the summary:
 
 ## Files changed
-| File | Description |
-|------|-------------|
-| `cli.py` | Argparse CLI with `send`, `notify`, `projects`, `status` subcommands |
-| `whatsup/mcp_server.py` | FastMCP server with 4 tools (send_checkin, send_notification, whatsup_projects, whatsup_status) |
-| `skills/whatsup.md` | Claude skill definition — `/whatsup` trigger with MCP tool mappings |
-| `whatsup/__init__.py` | Package init (stub, replaced by agent A at merge) |
-| `whatsup/core.py` | Core logic stub (replaced by agent B at merge) |
-| `whatsup/messages.py` | Message formatters stub (replaced by agent B at merge) |
-| `docs/project-memory/sessions/S-2026-03-19-0316-sprint1-cli-mcp-skill.md` | Session doc |
+- **`whatsup/messages.py`** — added `format_sprint_started`, `format_agent_completed`, registered both in `_FORMATTERS`
+- **`whatsup/core.py`** — rewritten with `send()`, `notify()`, `projects()`, `status()`, `_get_transport()` helper; backward-compat re-exports preserved
+- **`whatsup/history.py`** — new file with `log_message()` (JSONL append to `~/.config/tool-telegram-whatsapp/history/{slug}.jsonl`) and `get_history()` (tail N entries)
+- **`docs/project-memory/sessions/S-2026-03-19-0408-sprint2-events-history.md`** — session doc
 
 ## Commands run
-- `python cli.py --help` — shows all 4 subcommands
-- `python cli.py send --help` — shows slug and message as required args
-- `from whatsup.mcp_server import mcp` — imports successfully
-- `from whatsup import core; print('import ok')` — sprint smoke test passes
+- `git pull origin main` — already up to date
+- `python3 -c "..."` — verified all 5 acceptance criteria pass
+- `git commit` + `git push -u origin HEAD`
 
 ## Notes / follow-on work
-- **Merge conflicts expected** on `whatsup/__init__.py`, `whatsup/core.py`, `whatsup/messages.py` — agent A/B versions should take precedence over my stubs
-- Used `FastMCP` (decorator-based) rather than lower-level `Server` class for cleaner code
-- `mcp` package required Python 3.10+ — tested with Python 3.13
+- **No test suite exists** — a future sprint should add unit tests for messages, core, and history modules
+- **REST API server** (port 1202) and **`.gitignore` cleanup** are scoped to other agents in this sprint
+- `notify()` checks the project's `notify` list and returns `{"skipped": True, ...}` for events not enabled — MCP tools now work end-to-end
